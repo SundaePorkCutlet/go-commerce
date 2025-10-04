@@ -1,0 +1,42 @@
+{
+    "folders": [
+        {
+            "name": "Go Commerce (Main)",
+            "path": "."
+        },
+        {
+            "name": "USERFC",
+            "path": "./USERFC"
+        },
+        {
+            "name": "PRODUCTFC", 
+            "path": "./PRODUCTFC"
+        },
+        {
+            "name": "ORDERFC",
+            "path": "./ORDERFC"
+        }
+    ],
+    "settings": {
+        "go.gopath": "",
+        "go.goroot": "",
+        "go.useLanguageServer": true,
+        "go.lintTool": "golangci-lint",
+        "go.formatTool": "goimports",
+        "files.exclude": {
+            "**/node_modules": true,
+            "**/.git": false
+        },
+        "search.exclude": {
+            "**/vendor": true
+        }
+    },
+    "extensions": {
+        "recommendations": [
+            "golang.go",
+            "ms-vscode.vscode-json",
+            "bradlc.vscode-tailwindcss",
+            "ms-vscode.powershell"
+        ]
+    }
+}
