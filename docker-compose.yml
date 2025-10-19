@@ -1,0 +1,61 @@
+version: "3.8"
+
+services:
+  # PostgreSQL 데이터베이스
+  postgres:
+    image: postgres:15
+    container_name: go-commerce-postgres
+    environment:
+      POSTGRES_DB: user
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - go-commerce-network
+
+  # Redis 캐시
+  redis:
+    image: redis:7-alpine
+    container_name: go-commerce-redis
+    command: redis-server --requirepass admin
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - go-commerce-network
+
+  # USERFC 서비스
+  userfc:
+    build:
+      context: ./USERFC
+      dockerfile: Dockerfile
+    container_name: go-commerce-userfc
+    ports:
+      - "8080:8080"
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=admin
+      - DB_PASSWORD=admin
+      - DB_NAME=user
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=admin
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - go-commerce-network
+
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  go-commerce-network:
+    driver: bridge
