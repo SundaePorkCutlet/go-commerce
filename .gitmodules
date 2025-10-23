@@ -1,3 +1,6 @@
 [submodule "USERFC"]
 	path = USERFC
 	url = https://github.com/SundaePorkCutlet/userfc.git
+[submodule "PRODUCTFC"]
+	path = PRODUCTFC
+	url = https://github.com/SundaePorkCutlet/productfc.git
