@@ -1,0 +1,18 @@
+app:
+  port: 8083
+
+database:
+  host: postgres
+  port: 5432
+  user: admin
+  password: admin
+  name: postgres
+
+redis:
+  host: redis
+  port: 6379
+  password: admin
+
+secret:
+  jwt_secret: secret301
+
