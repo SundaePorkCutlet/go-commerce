@@ -7,16 +7,18 @@ import (
 	"orderfc/cmd/order/service"
 	"orderfc/infrastructure/constant"
 	"orderfc/infrastructure/log"
+	"orderfc/kafka"
 	"orderfc/models"
 	"time"
 )
 
 type OrderUsecase struct {
-	OrderService service.OrderService
+	OrderService  service.OrderService
+	KafkaProducer kafka.KafkaProducer
 }
 
-func NewOrderUsecase(orderService service.OrderService) *OrderUsecase {
-	return &OrderUsecase{OrderService: orderService}
+func NewOrderUsecase(orderService service.OrderService, kafkaProducer kafka.KafkaProducer) *OrderUsecase {
+	return &OrderUsecase{OrderService: orderService, KafkaProducer: kafkaProducer}
 }
 
 func (u *OrderUsecase) CheckOutOrder(ctx context.Context, checkoutRequest *models.CheckoutRequest) (int64, error) {
@@ -64,6 +66,17 @@ func (u *OrderUsecase) CheckOutOrder(ctx context.Context, checkoutRequest *model
 		if err != nil {
 			log.Logger.Info().Err(err).Msgf("Error saving idempotency token: %s", err.Error())
 		}
+	}
+	orderCreatedEvent := models.OrderCreatedEvent{
+		OrderID:         orderId,
+		UserID:          checkoutRequest.UserID,
+		TotalAmount:     totalAmount,
+		PaymentMethod:   checkoutRequest.PaymentMethod,
+		ShippingAddress: checkoutRequest.ShippingAddress,
+	}
+	err = u.KafkaProducer.PublishOrderCreated(ctx, orderCreatedEvent)
+	if err != nil {
+		return 0, err
 	}
 
 	return orderId, nil

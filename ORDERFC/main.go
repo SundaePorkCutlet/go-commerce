@@ -28,10 +28,13 @@ func main() {
 	}
 	log.Logger.Info().Msg("Database migration completed - order_detail, orders, and order_request_log tables created")
 
+	kafkaProducer := kafka.NewKafkaProducer(cfg.Kafka.Brokers, cfg.Kafka.Topic)
+
+	defer kafkaProducer.Close()
 	// 의존성 주입
 	orderRepository := repository.NewOrderRepository(db, redis)
 	orderService := service.NewOrderService(*orderRepository)
-	orderUsecase := usecase.NewOrderUsecase(*orderService)
+	orderUsecase := usecase.NewOrderUsecase(*orderService, kafkaProducer)
 	orderHandler := handler.NewOrderHandler(*orderUsecase)
 
 	port := cfg.App.Port

@@ -23,3 +23,8 @@ type RedisConfig struct {
 	Port     string `yaml:"port" validate:"required"`
 	Password string `yaml:"password" validate:"required"`
 }
+
+type KafkaConfig struct {
+	Brokers []string `yaml:"brokers" validate:"required"`
+	Topic   string   `yaml:"topic" validate:"required"`
+}

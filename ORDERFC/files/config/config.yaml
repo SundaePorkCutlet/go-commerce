@@ -16,3 +16,7 @@ redis:
 secret:
   jwt_secret: secret301
 
+kafka:
+  brokers:
+    - kafka:29092
+  topic: order.created
