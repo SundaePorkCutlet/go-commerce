@@ -7,10 +7,14 @@ services:
       POSTGRES_DB: user
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: admin
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8"
+      LC_ALL: C.UTF-8
+      LANG: C.UTF-8
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./init-encoding.sql:/docker-entrypoint-initdb.d/init-encoding.sql
     networks:
       - go-commerce-network
     healthcheck:
@@ -30,6 +34,57 @@ services:
       - redis_data:/data
     networks:
       - go-commerce-network
+
+  # kafka broker
+  kafka:
+    image: confluentinc/cp-kafka:7.6.1
+    container_name: go-commerce-kafka
+    ports:
+      - "29092:9092"
+      - "29093:9093"
+    networks:
+      - go-commerce-network
+    environment:
+      - KAFKA_BROKER_ID=1
+      - KAFKA_LISTENERS=PLAINTEXT://0.0.0.0:9092,EXTERNAL://0.0.0.0:9093
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092,EXTERNAL://host.docker.internal:29093
+      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
+      - KAFKA_INTER_BROKER_LISTENER_NAME=PLAINTEXT
+      - KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181
+      - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
+      - KAFKA_TRANSACTION_STATE_LOG_MIN_ISR=1
+      - KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR=1
+    depends_on:
+      zookeeper:
+        condition: service_started
+    restart: on-failure
+
+  # zookeeper
+  zookeeper:
+    image: zookeeper:3.9
+    container_name: go-commerce-zookeeper
+    ports:
+      - "22181:2181"
+    networks:
+      - go-commerce-network
+    restart: on-failure
+
+  # kafdrop
+  kafdrop:
+    image: obsidiandynamics/kafdrop:3.27.0
+    container_name: go-commerce-kafdrop
+    ports:
+      - "29000:9000"
+    networks:
+      - go-commerce-network
+    environment:
+      - KAFKA_BROKER_CONNECT=kafka:9092
+      - SERVER_PORT=9000
+      - MANAGEMENT_HEALTH_PROBES_ENABLED=true
+      - FREEMARKER_TEMPLATES_DEBUG=false
+    depends_on:
+      - kafka
+    restart: on-failure
 
   # USERFC 서비스
   userfc:
@@ -99,6 +154,24 @@ services:
       - go-commerce-network
     restart: on-failure
 
+  # ORDERFC 서비스
+  orderfc:
+    build:
+      context: ./ORDERFC
+      dockerfile: Dockerfile
+    container_name: go-commerce-orderfc
+    ports:
+      - "8083:8083"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      kafka:
+        condition: service_started
+    networks:
+      - go-commerce-network
+    restart: on-failure
 
 volumes:
   postgres_data:
