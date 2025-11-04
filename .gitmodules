@@ -4,3 +4,6 @@
 [submodule "PRODUCTFC"]
 	path = PRODUCTFC
 	url = https://github.com/SundaePorkCutlet/productfc.git
+[submodule "ORDERFC"]
+	path = ORDERFC
+	url = https://github.com/SundaePorkCutlet/orderfc
