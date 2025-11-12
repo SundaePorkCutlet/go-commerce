@@ -4,21 +4,20 @@ services:
     image: postgres:15
     container_name: go-commerce-postgres
     environment:
-      POSTGRES_DB: user
+      POSTGRES_DB: postgres
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: admin
       POSTGRES_INITDB_ARGS: "--encoding=UTF8"
       LC_ALL: C.UTF-8
       LANG: C.UTF-8
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./init-encoding.sql:/docker-entrypoint-initdb.d/init-encoding.sql
     networks:
       - go-commerce-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U admin -d user"]
+      test: ["CMD-SHELL", "pg_isready -U admin"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -86,6 +85,25 @@ services:
       - kafka
     restart: on-failure
 
+  # DB 초기화 헬퍼
+  db-init:
+    image: postgres:15
+    container_name: go-commerce-db-init
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - go-commerce-network
+    environment:
+      PGPASSWORD: admin
+    command: >
+      sh -c "
+        psql -h postgres -U admin -d postgres -c 'CREATE DATABASE \"user\";' || true &&
+        psql -h postgres -U admin -d postgres -c 'CREATE DATABASE product;' || true &&
+        psql -h postgres -U admin -d postgres -c 'CREATE DATABASE \"order\";' || true
+      "
+    restart: "no"
+
   # USERFC 서비스
   userfc:
     build:
@@ -93,7 +111,7 @@ services:
       dockerfile: Dockerfile
     container_name: go-commerce-userfc
     ports:
-      - "8081:8080"
+      - "28080:8080"
     environment:
       - DB_HOST=postgres
       - DB_PORT=5432
@@ -108,23 +126,11 @@ services:
         condition: service_healthy
       redis:
         condition: service_started
+      db-init:
+        condition: service_completed_successfully
     networks:
       - go-commerce-network
     restart: on-failure
-
-  # DB 초기화 헬퍼
-  db-init:
-    image: postgres:15
-    depends_on:
-      postgres:
-        condition: service_healthy
-    networks:
-      - go-commerce-network
-    command: >
-      sh -c "
-        PGPASSWORD=admin psql -h postgres -U admin -d user -c 'CREATE DATABASE product;' || true
-      "
-    restart: "no"
 
   # PRODUCTFC 서비스
   productfc:
@@ -133,7 +139,7 @@ services:
       dockerfile: Dockerfile
     container_name: go-commerce-productfc
     ports:
-      - "8082:8080"
+      - "28081:8081"
     environment:
       - DB_HOST=postgres
       - DB_PORT=5432
@@ -161,7 +167,7 @@ services:
       dockerfile: Dockerfile
     container_name: go-commerce-orderfc
     ports:
-      - "8083:8083"
+      - "28082:8083"
     depends_on:
       postgres:
         condition: service_healthy
@@ -169,6 +175,8 @@ services:
         condition: service_started
       kafka:
         condition: service_started
+      db-init:
+        condition: service_completed_successfully
     networks:
       - go-commerce-network
     restart: on-failure
