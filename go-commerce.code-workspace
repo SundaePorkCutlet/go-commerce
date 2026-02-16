@@ -27,6 +27,10 @@
     "go.useLanguageServer": true,
     "go.lintTool": "golangci-lint",
     "go.formatTool": "goimports",
+    "gopls": {
+      "build.directoryFilters": ["-**/vendor"],
+      "build.buildFlags": ["-mod=readonly"]
+    },
     "files.exclude": {
       "**/node_modules": true,
       "**/.git": false

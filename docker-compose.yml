@@ -1,10 +1,10 @@
 services:
-  # PostgreSQL 데이터베이스
-  postgres:
+  # PostgreSQL - USERFC
+  postgres-user:
     image: postgres:15
-    container_name: go-commerce-postgres
+    container_name: go-commerce-postgres-user
     environment:
-      POSTGRES_DB: postgres
+      POSTGRES_DB: user
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: admin
       POSTGRES_INITDB_ARGS: "--encoding=UTF8"
@@ -13,7 +13,76 @@ services:
     ports:
       - "5433:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_user_data:/var/lib/postgresql/data
+    networks:
+      - go-commerce-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # PostgreSQL - PRODUCTFC
+  postgres-product:
+    image: postgres:15
+    container_name: go-commerce-postgres-product
+    environment:
+      POSTGRES_DB: product
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8"
+      LC_ALL: C.UTF-8
+      LANG: C.UTF-8
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres_product_data:/var/lib/postgresql/data
+    networks:
+      - go-commerce-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # PostgreSQL - ORDERFC
+  postgres-order:
+    image: postgres:15
+    container_name: go-commerce-postgres-order
+    environment:
+      POSTGRES_DB: order
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8"
+      LC_ALL: C.UTF-8
+      LANG: C.UTF-8
+    ports:
+      - "5435:5432"
+    volumes:
+      - postgres_order_data:/var/lib/postgresql/data
+    networks:
+      - go-commerce-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # PostgreSQL - PAYMENTFC
+  postgres-payment:
+    image: postgres:15
+    container_name: go-commerce-postgres-payment
+    environment:
+      POSTGRES_DB: payment
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8"
+      LC_ALL: C.UTF-8
+      LANG: C.UTF-8
+    ports:
+      - "5436:5432"
+    volumes:
+      - postgres_payment_data:/var/lib/postgresql/data
     networks:
       - go-commerce-network
     healthcheck:
@@ -85,25 +154,6 @@ services:
       - kafka
     restart: on-failure
 
-  # DB 초기화 헬퍼
-  db-init:
-    image: postgres:15
-    container_name: go-commerce-db-init
-    depends_on:
-      postgres:
-        condition: service_healthy
-    networks:
-      - go-commerce-network
-    environment:
-      PGPASSWORD: admin
-    command: >
-      sh -c "
-        psql -h postgres -U admin -d postgres -c 'CREATE DATABASE \"user\";' || true &&
-        psql -h postgres -U admin -d postgres -c 'CREATE DATABASE product;' || true &&
-        psql -h postgres -U admin -d postgres -c 'CREATE DATABASE \"order\";' || true
-      "
-    restart: "no"
-
   # USERFC 서비스
   userfc:
     build:
@@ -113,7 +163,7 @@ services:
     ports:
       - "28080:8080"
     environment:
-      - DB_HOST=postgres
+      - DB_HOST=postgres-user
       - DB_PORT=5432
       - DB_USER=admin
       - DB_PASSWORD=admin
@@ -122,12 +172,10 @@ services:
       - REDIS_PORT=6379
       - REDIS_PASSWORD=admin
     depends_on:
-      postgres:
+      postgres-user:
         condition: service_healthy
       redis:
         condition: service_started
-      db-init:
-        condition: service_completed_successfully
     networks:
       - go-commerce-network
     restart: on-failure
@@ -141,7 +189,7 @@ services:
     ports:
       - "28081:8081"
     environment:
-      - DB_HOST=postgres
+      - DB_HOST=postgres-product
       - DB_PORT=5432
       - DB_USER=admin
       - DB_PASSWORD=admin
@@ -150,12 +198,10 @@ services:
       - REDIS_PORT=6379
       - REDIS_PASSWORD=admin
     depends_on:
-      postgres:
+      postgres-product:
         condition: service_healthy
       redis:
         condition: service_started
-      db-init:
-        condition: service_completed_successfully
     networks:
       - go-commerce-network
     restart: on-failure
@@ -169,20 +215,21 @@ services:
     ports:
       - "28082:8083"
     depends_on:
-      postgres:
+      postgres-order:
         condition: service_healthy
       redis:
         condition: service_started
       kafka:
         condition: service_started
-      db-init:
-        condition: service_completed_successfully
     networks:
       - go-commerce-network
     restart: on-failure
 
 volumes:
-  postgres_data:
+  postgres_user_data:
+  postgres_product_data:
+  postgres_order_data:
+  postgres_payment_data:
   redis_data:
 
 networks:
