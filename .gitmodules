@@ -7,3 +7,6 @@
 [submodule "ORDERFC"]
 	path = ORDERFC
 	url = https://github.com/SundaePorkCutlet/orderfc
+[submodule "PAYMENTFC"]
+	path = PAYMENTFC
+	url = https://github.com/SundaePorkCutlet/paymentfc.git
