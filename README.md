@@ -60,7 +60,7 @@ flowchart TB
 | **USERFC**    | 28080  | User registration, authentication (JWT), session/cache |
 | **PRODUCTFC** | 28081  | Product catalog, inventory, product API |
 | **ORDERFC**   | 28082  | Order creation, order state, publishes `order.created` |
-| **PAYMENTFC** | 8083   | Xendit invoice creation, webhook handling, publishes `payment.success` |
+| **PAYMENTFC** | 28083  | Xendit invoice creation, webhook handling, publishes `payment.success` |
 
 Each service is a **Go** application (Gin, GORM) with a layered structure: Handler → Usecase → Service → Repository.
 
@@ -133,7 +133,7 @@ cd go-commerce
 git submodule update --init --recursive
 ```
 
-### 2. Run infrastructure and core services
+### 2. Run locally (Docker Compose)
 
 ```bash
 docker compose up -d
@@ -148,18 +148,9 @@ This starts:
 - **USERFC** — http://localhost:28080  
 - **PRODUCTFC** — http://localhost:28081  
 - **ORDERFC** — http://localhost:28082  
+- **PAYMENTFC** — http://localhost:28083  
 
-### 3. Run PAYMENTFC locally (optional)
-
-PAYMENTFC connects to Kafka on the host. Use the same Docker network or point config to `localhost:9093`.
-
-```bash
-cd PAYMENTFC
-cp .env.example .env   # Set XENDIT_SECRET_API_KEY, XENDIT_WEBHOOK_TOKEN
-go run main.go
-```
-
-Service runs on port **8083**. Webhook URL for Xendit: `http://<your-host>:8083/v1/payment/webhook`.
+(Optional) For Xendit: set `XENDIT_SECRET_API_KEY`, `XENDIT_WEBHOOK_TOKEN` in a `.env` at project root.
 
 ---
 
@@ -169,7 +160,7 @@ The repository is a **multi-repo monorepo** with Git submodules: each service is
 
 ```
 go-commerce/
-├── docker-compose.yml    # Infrastructure + USERFC, PRODUCTFC, ORDERFC
+├── docker-compose.yml    # Infrastructure + USERFC, PRODUCTFC, ORDERFC, PAYMENTFC
 ├── USERFC/               # User service (submodule)
 ├── PRODUCTFC/            # Product service (submodule)
 ├── ORDERFC/              # Order service (submodule)
