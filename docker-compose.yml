@@ -137,6 +137,25 @@ services:
       - go-commerce-network
     restart: on-failure
 
+  # MongoDB - Audit Logs
+  mongodb:
+    image: mongo:7
+    container_name: go-commerce-mongodb
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - go-commerce-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   # kafdrop
   kafdrop:
     image: obsidiandynamics/kafdrop:3.27.0
@@ -237,6 +256,7 @@ services:
       - KAFKA_BROKER=kafka:9092
       - XENDIT_SECRET_API_KEY=${XENDIT_SECRET_API_KEY:-}
       - XENDIT_WEBHOOK_TOKEN=${XENDIT_WEBHOOK_TOKEN:-}
+      - MONGO_URI=mongodb://admin:admin@mongodb:27017
     depends_on:
       postgres-payment:
         condition: service_healthy
@@ -244,6 +264,8 @@ services:
         condition: service_started
       kafka:
         condition: service_started
+      mongodb:
+        condition: service_healthy
     networks:
       - go-commerce-network
     restart: on-failure
@@ -254,6 +276,7 @@ volumes:
   postgres_order_data:
   postgres_payment_data:
   redis_data:
+  mongodb_data:
 
 networks:
   go-commerce-network:
