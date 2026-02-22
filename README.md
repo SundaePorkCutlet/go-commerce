@@ -28,6 +28,7 @@ flowchart TB
         DB2[(postgres-product)]
         DB3[(postgres-order)]
         DB4[(postgres-payment)]
+        MONGO[(MongoDB<br/>Audit Logs)]
     end
 
     subgraph Infrastructure["Infrastructure"]
@@ -48,6 +49,7 @@ flowchart TB
     ORDERFC --> REDIS
     ORDERFC --> KAFKA
     PAYMENTFC --> DB4
+    PAYMENTFC --> MONGO
     PAYMENTFC --> KAFKA
 ```
 
@@ -60,7 +62,7 @@ flowchart TB
 | **USERFC**    | 28080  | User registration, authentication (JWT), session/cache |
 | **PRODUCTFC** | 28081  | Product catalog, inventory, product API |
 | **ORDERFC**   | 28082  | Order creation, order state, publishes `order.created` |
-| **PAYMENTFC** | 28083  | Xendit invoice creation, webhook handling, publishes `payment.success` |
+| **PAYMENTFC** | 28083  | Xendit invoice creation, webhook handling, batch processing, audit logging, publishes `payment.success` |
 
 Each service is a **Go** application (Gin, GORM) with a layered structure: Handler → Usecase → Service → Repository.
 
@@ -112,6 +114,7 @@ sequenceDiagram
 | Message bus | Apache Kafka (segmentio/kafka-go) |
 | Cache       | Redis      |
 | Database    | PostgreSQL 15 (one instance per service) |
+| Audit Log   | MongoDB 7 (append-only event store) |
 | Payment     | Xendit (invoicing & webhooks) |
 | Container   | Docker, Docker Compose |
 
@@ -142,6 +145,7 @@ docker compose up -d
 This starts:
 
 - **PostgreSQL** × 4 (user, product, order, payment) — ports 5433–5436  
+- **MongoDB** — 27017 (audit logs)
 - **Redis** — 6379  
 - **Kafka** + Zookeeper — 29092, 29093  
 - **Kafdrop** (Kafka UI) — http://localhost:29000  
@@ -172,15 +176,21 @@ Within each service (e.g. PAYMENTFC):
 - **cmd/** — Handler, Usecase, Service, Repository (layered), main wiring
 - **config/** — Configuration (YAML, env override)
 - **models/** — Domain and API models
-- **infrastructure/** — Logging, constants, middleware
+- **constant/** — Application constants (payment status, Kafka topics)
+- **log/** — Logging setup (zerolog)
 - **kafka/** — Consumers and producers
+- **pdf/** — PDF invoice generation
 
 ---
 
 ## Design Highlights
 
 - **Database per service** — Each microservice has its own PostgreSQL database to ensure loose coupling and independent scaling.
+- **Polyglot Persistence** — PostgreSQL for transactional data, MongoDB for append-only audit logs. Each data store is chosen based on access patterns.
 - **Event-driven integration** — Order and payment flows are decoupled via Kafka; PAYMENTFC does not call ORDERFC over HTTP for order creation.
+- **Feature Toggle** — `disable_create_invoice_directly` config switches between real-time invoice creation and batch processing mode.
+- **Batch Processing** — Background schedulers handle pending payment requests, retry failed invoices, sweep expired payments, and check invoice statuses.
+- **Audit Logging** — All payment events (created, paid, failed, expired) are logged to MongoDB for traceability and debugging.
 - **Idempotency** — Payment webhook handling checks `IsAlreadyPaid` and avoids duplicate processing.
 - **Payment safeguards** — Amount validation (expected vs. webhook), anomaly logging (`payment_anomalies`), and failed-event recording (`failed_events`) for manual review and retry.
 - **Kafka publish retry** — Exponential backoff (2^i seconds) when publishing `payment.success` to improve reliability under transient failures.
