@@ -180,7 +180,8 @@ services:
       dockerfile: Dockerfile
     container_name: go-commerce-userfc
     ports:
-      - "28080:8080"
+      - "28080:28080"
+      - "50051:50051"
     environment:
       - DB_HOST=postgres-user
       - DB_PORT=5432
