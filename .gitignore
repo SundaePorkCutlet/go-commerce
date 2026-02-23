@@ -32,6 +32,9 @@ vendor/
 .env.local
 .env.*.local
 
+# Vault setup script (contains secrets)
+scripts/setup-vault.sh
+
 # Build outputs
 dist/
 build/

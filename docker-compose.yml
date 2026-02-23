@@ -137,6 +137,23 @@ services:
       - go-commerce-network
     restart: on-failure
 
+  # Vault - Secrets Management
+  vault:
+    image: vault:1.13.3
+    container_name: go-commerce-vault
+    ports:
+      - "8200:8200"
+    environment:
+      VAULT_DEV_ROOT_TOKEN_ID: fcproject
+      VAULT_DEV_LISTEN_ADDRESS: 0.0.0.0:8200
+    cap_add:
+      - IPC_LOCK
+    volumes:
+      - vault_data:/vault/file
+    command: server -dev
+    networks:
+      - go-commerce-network
+
   # MongoDB - Audit Logs
   mongodb:
     image: mongo:7
@@ -278,6 +295,7 @@ volumes:
   postgres_payment_data:
   redis_data:
   mongodb_data:
+  vault_data:
 
 networks:
   go-commerce-network:
