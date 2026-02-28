@@ -154,6 +154,19 @@ services:
     networks:
       - go-commerce-network
 
+  # Jaeger - Distributed Tracing
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: go-commerce-jaeger
+    ports:
+      - "16686:16686"  # UI
+      - "4317:4317"    # OTLP gRPC
+      - "4318:4318"    # OTLP HTTP
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    networks:
+      - go-commerce-network
+
   # MongoDB - Audit Logs
   mongodb:
     image: mongo:7
@@ -208,10 +221,13 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_PASSWORD=admin
+      - JAEGER_ENDPOINT=http://jaeger:4318
     depends_on:
       postgres-user:
         condition: service_healthy
       redis:
+        condition: service_started
+      jaeger:
         condition: service_started
     networks:
       - go-commerce-network
@@ -234,10 +250,13 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_PASSWORD=admin
+      - JAEGER_ENDPOINT=http://jaeger:4318
     depends_on:
       postgres-product:
         condition: service_healthy
       redis:
+        condition: service_started
+      jaeger:
         condition: service_started
     networks:
       - go-commerce-network
@@ -251,12 +270,16 @@ services:
     container_name: go-commerce-orderfc
     ports:
       - "28082:8083"
+    environment:
+      - JAEGER_ENDPOINT=http://jaeger:4318
     depends_on:
       postgres-order:
         condition: service_healthy
       redis:
         condition: service_started
       kafka:
+        condition: service_started
+      jaeger:
         condition: service_started
     networks:
       - go-commerce-network
@@ -275,6 +298,7 @@ services:
       - XENDIT_SECRET_API_KEY=${XENDIT_SECRET_API_KEY:-}
       - XENDIT_WEBHOOK_TOKEN=${XENDIT_WEBHOOK_TOKEN:-}
       - MONGO_URI=mongodb://admin:admin@mongodb:27017
+      - JAEGER_ENDPOINT=http://jaeger:4318
     depends_on:
       postgres-payment:
         condition: service_healthy
@@ -284,6 +308,8 @@ services:
         condition: service_started
       mongodb:
         condition: service_healthy
+      jaeger:
+        condition: service_started
     networks:
       - go-commerce-network
     restart: on-failure
