@@ -1,0 +1,33 @@
+# 중앙 Prometheus — 각 FC scrape 설정 병합
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: userfc
+    static_configs:
+      - targets: [userfc:28080]
+        labels:
+          service: userfc
+    metrics_path: /metrics
+
+  - job_name: productfc
+    static_configs:
+      - targets: [productfc:8081]
+        labels:
+          service: productfc
+    metrics_path: /metrics
+
+  - job_name: orderfc
+    static_configs:
+      - targets: [orderfc:8083]
+        labels:
+          service: orderfc
+    metrics_path: /metrics
+
+  - job_name: paymentfc
+    static_configs:
+      - targets: [paymentfc:28083]
+        labels:
+          service: paymentfc
+    metrics_path: /metrics

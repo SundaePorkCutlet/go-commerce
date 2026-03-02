@@ -212,6 +212,9 @@ services:
     ports:
       - "28080:28080"
       - "50051:50051"
+    volumes:
+      - userfc_logs:/var/log/userfc
+    command: sh -c "./main 2>&1 | tee /var/log/userfc/app.log"
     environment:
       - DB_HOST=postgres-user
       - DB_PORT=5432
@@ -241,6 +244,9 @@ services:
     container_name: go-commerce-productfc
     ports:
       - "28081:8081"
+    volumes:
+      - productfc_logs:/var/log/productfc
+    command: sh -c "./main 2>&1 | tee /var/log/productfc/app.log"
     environment:
       - DB_HOST=postgres-product
       - DB_PORT=5432
@@ -270,6 +276,9 @@ services:
     container_name: go-commerce-orderfc
     ports:
       - "28082:8083"
+    volumes:
+      - orderfc_logs:/var/log/orderfc
+    command: sh -c "./main 2>&1 | tee /var/log/orderfc/app.log"
     environment:
       - JAEGER_ENDPOINT=http://jaeger:4318
     depends_on:
@@ -293,6 +302,9 @@ services:
     container_name: go-commerce-paymentfc
     ports:
       - "28083:28083"
+    volumes:
+      - paymentfc_logs:/var/log/paymentfc
+    command: sh -c "./main 2>&1 | tee /var/log/paymentfc/app.log"
     environment:
       - KAFKA_BROKER=kafka:9092
       - XENDIT_SECRET_API_KEY=${XENDIT_SECRET_API_KEY:-}
@@ -314,6 +326,111 @@ services:
       - go-commerce-network
     restart: on-failure
 
+  # Loki — 로그 수집 저장소
+  loki:
+    image: grafana/loki:2.9.4
+    container_name: go-commerce-loki
+    user: "0"
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./loki/loki-config.yml:/etc/loki/local-config.yaml
+      - loki_data:/tmp/loki
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - go-commerce-network
+    restart: on-failure
+
+  # Prometheus — 메트릭 수집
+  prometheus:
+    image: prom/prometheus:v2.52.0
+    container_name: go-commerce-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --web.enable-lifecycle
+    networks:
+      - go-commerce-network
+    restart: on-failure
+
+  # Grafana — 대시보드 (Loki + Prometheus 연동)
+  grafana:
+    image: grafana/grafana:11.2.0
+    container_name: go-commerce-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    depends_on:
+      - loki
+      - prometheus
+    networks:
+      - go-commerce-network
+    restart: on-failure
+
+  # Promtail — USERFC 로그 수집
+  promtail-userfc:
+    image: grafana/promtail:2.9.4
+    container_name: go-commerce-promtail-userfc
+    volumes:
+      - ./USERFC/promtail/promtail-config.yml:/etc/promtail/config.yml
+      - userfc_logs:/var/log/userfc:ro
+    command: -config.file=/etc/promtail/config.yml
+    depends_on:
+      - loki
+    networks:
+      - go-commerce-network
+    restart: on-failure
+
+  # Promtail — PRODUCTFC 로그 수집
+  promtail-productfc:
+    image: grafana/promtail:2.9.4
+    container_name: go-commerce-promtail-productfc
+    volumes:
+      - ./PRODUCTFC/promtail/promtail-config.yml:/etc/promtail/config.yml
+      - productfc_logs:/var/log/productfc:ro
+    command: -config.file=/etc/promtail/config.yml
+    depends_on:
+      - loki
+    networks:
+      - go-commerce-network
+    restart: on-failure
+
+  # Promtail — ORDERFC 로그 수집
+  promtail-orderfc:
+    image: grafana/promtail:2.9.4
+    container_name: go-commerce-promtail-orderfc
+    volumes:
+      - ./ORDERFC/promtail/promtail-config.yml:/etc/promtail/config.yml
+      - orderfc_logs:/var/log/orderfc:ro
+    command: -config.file=/etc/promtail/config.yml
+    depends_on:
+      - loki
+    networks:
+      - go-commerce-network
+    restart: on-failure
+
+  # Promtail — PAYMENTFC 로그 수집
+  promtail-paymentfc:
+    image: grafana/promtail:2.9.4
+    container_name: go-commerce-promtail-paymentfc
+    volumes:
+      - ./PAYMENTFC/promtail/promtail-config.yml:/etc/promtail/config.yml
+      - paymentfc_logs:/var/log/paymentfc:ro
+    command: -config.file=/etc/promtail/config.yml
+    depends_on:
+      - loki
+    networks:
+      - go-commerce-network
+    restart: on-failure
+
 volumes:
   postgres_user_data:
   postgres_product_data:
@@ -322,6 +439,12 @@ volumes:
   redis_data:
   mongodb_data:
   vault_data:
+  userfc_logs:
+  productfc_logs:
+  orderfc_logs:
+  paymentfc_logs:
+  loki_data:
+  prometheus_data:
 
 networks:
   go-commerce-network:
