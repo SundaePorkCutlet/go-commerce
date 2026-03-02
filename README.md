@@ -176,7 +176,12 @@ sequenceDiagram
 | Distributed Tracing | Jaeger + OpenTelemetry (OTLP) |
 | Secrets Management | HashiCorp Vault |
 | Container         | Docker, Docker Compose |
+| API Documentation | Swagger (swaggo/gin-swagger) |
 | Kafka UI          | Kafdrop |
+| **Log aggregation** | Loki |
+| **Metrics** | Prometheus, node_exporter (host), Go app `/metrics` (per process) |
+| **Dashboards** | Grafana (Loki + Prometheus data sources) |
+| **Log shipping** | Promtail (per service) |
 
 ---
 
@@ -198,7 +203,7 @@ git submodule update --init --recursive
 ### 2. Run locally (Docker Compose)
 
 ```bash
-docker compose up -d
+docker compose up -d --build
 ```
 
 This starts:
@@ -222,6 +227,68 @@ This starts:
 | ORDERFC | 28082 | http://localhost:28082 |
 | PAYMENTFC | 28083 | http://localhost:28083 |
 
+| **Monitoring** | | |
+| Loki | 3100 | http://localhost:3100 |
+| Prometheus | 9090 | http://localhost:9090 |
+| Grafana | 3000 | http://localhost:3000 |
+| node_exporter | 9100 | http://localhost:9100/metrics |
+
+Each service exposes **Swagger UI** for API documentation and try-it-out:
+
+- USERFC: http://localhost:28080/swagger/index.html  
+- PRODUCTFC: http://localhost:28081/swagger/index.html  
+- ORDERFC: http://localhost:28082/swagger/index.html  
+- PAYMENTFC: http://localhost:28083/swagger/index.html  
+
+After changing handler annotations, regenerate docs with `swag init -g main.go` in the service directory (requires `go install github.com/swaggo/swag/cmd/swag@latest`).
+
+---
+
+## Monitoring (Loki, Prometheus, Grafana)
+
+Centralized logs and metrics are provided by Loki, Prometheus, Grafana, Promtail, and node_exporter. All run in the same Docker Compose stack.
+
+### Components
+
+| Component | Role | Port |
+|-----------|------|------|
+| **Loki** | Log storage; receives log streams from Promtail | 3100 |
+| **Prometheus** | Scrapes metrics from each FC `/metrics` and node_exporter | 9090 |
+| **Grafana** | UI for dashboards and ad-hoc queries (logs + metrics) | 3000 |
+| **Promtail** | Per-service agent; tails app log files and sends to Loki | — |
+| **node_exporter** | Host-level metrics (CPU, memory, disk, network) | 9100 |
+
+### Per-service setup
+
+- **Application metrics**: Each FC exposes `GET /metrics` (Prometheus Go client). Prometheus scrapes `userfc:28080`, `productfc:8081`, `orderfc:8083`, `paymentfc:28083` from the compose network.
+- **Logs**: Each FC writes stdout to a file (e.g. `/var/log/userfc/app.log`) via `tee`; a dedicated Promtail container per FC reads that path and sends to Loki with a `job` label (`userfc`, `productfc`, etc.).
+- **Config in repo**: Each FC repo contains:
+  - `promtail/promtail-config.yml` — what to tail and Loki push URL.
+  - `prometheus/scrape-config.yml` — reference scrape config for that service (merged into the central `prometheus/prometheus.yml` at repo root).
+
+Central config (single place):
+
+- `loki/loki-config.yml` — Loki server config.
+- `prometheus/prometheus.yml` — All scrape jobs (all FCs + node_exporter).
+
+### Grafana
+
+- **URL**: http://localhost:3000  
+- **Login**: `admin` / `admin` (change on first use if prompted).
+- **Data sources** (add once, then reuse):
+  - **Loki**: URL `http://loki:3100` → Save & test.
+  - **Prometheus**: URL `http://prometheus:9090` → Save & test.
+- **Persistence**: Grafana data (dashboards, data sources, users) is stored in the `grafana_data` volume. Restarting or recreating the Grafana container does **not** reset the UI; only removing the volume would.
+
+### Quick checks
+
+| Check | How |
+|-------|-----|
+| Loki up | http://localhost:3100/ready → body `ready` |
+| Prometheus targets | http://localhost:9090 → Status → Targets (userfc, productfc, orderfc, paymentfc, node) |
+| Logs in Grafana | Explore → Data source Loki → query e.g. `{job="userfc"}` |
+| Metrics in Grafana | Explore → Data source Prometheus → query e.g. `up` or `process_resident_memory_bytes` |
+
 ### 3. Environment Variables (Optional)
 
 For Xendit integration, create a `.env` at project root:
@@ -241,6 +308,8 @@ The repository is a **multi-repo monorepo** with Git submodules: each service is
 go-commerce/
 ├── docker-compose.yml
 ├── README.md
+├── loki/                    # Loki server config
+├── prometheus/              # Central Prometheus config (all scrape jobs)
 ├── USERFC/                  # User service (submodule)
 ├── PRODUCTFC/               # Product service (submodule)
 ├── ORDERFC/                 # Order service (submodule)
@@ -258,6 +327,7 @@ Within each service:
 │   ├── repository/          # Data access (DB, Redis, HTTP)
 │   └── resource/            # DB/Redis connection setup
 ├── config/                  # Configuration (YAML + env override)
+├── docs/                    # Swagger-generated docs (swag init)
 ├── models/                  # Domain models, DTOs, event structs
 ├── kafka/                   # Kafka producers and consumers
 ├── tracing/                 # OpenTelemetry / Jaeger setup
@@ -266,6 +336,8 @@ Within each service:
 ├── infrastructure/          # Logging (zerolog), constants
 ├── grpc/                    # gRPC server/client (USERFC, PAYMENTFC)
 ├── pb/                      # Protocol Buffer generated code
+├── promtail/                # Promtail config (log path, Loki URL)
+├── prometheus/              # Scrape-config fragment for this service
 ├── files/config/            # config.yaml
 ├── Dockerfile
 └── main.go
@@ -296,6 +368,8 @@ Within each service:
 - **Distributed tracing** — All services export traces via OpenTelemetry (OTLP) to Jaeger. Each HTTP request is traced across service boundaries.
 - **Structured logging** — zerolog with JSON output across all services.
 - **Audit logging** — All payment events (created, paid, failed, expired) are logged to MongoDB for traceability and debugging.
+- **Centralized logs** — Loki stores log streams; Promtail (one per FC) ships from app log files. Grafana Explore queries by `job` (e.g. `userfc`, `paymentfc`).
+- **Metrics** — Each FC exposes `/metrics` (Prometheus Go client: process + Go runtime). node_exporter provides host-level metrics. Prometheus scrapes all; Grafana visualizes.
 
 ### Security & Configuration
 - **Secrets management** — HashiCorp Vault for sensitive configuration (API keys, DB credentials).
@@ -316,41 +390,43 @@ Within each service:
 |--------|------|-------------|
 | POST | `/v1/register` | Register new user |
 | POST | `/v1/login` | Login and get JWT token |
+| GET | `/api/v1/user-info` | Get current user info |
 
 ### PRODUCTFC
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/v1/products/:id` | Get product by ID |
-| GET | `/v1/products/search` | Search products (with filtering, sorting, pagination) |
-| POST | `/v1/products` | Create product |
-| PUT | `/v1/products/:id` | Update product |
-| DELETE | `/v1/products/:id` | Delete product |
-| POST | `/v1/products/categories` | Create category |
-| PUT | `/v1/products/categories/:id` | Update category |
-| DELETE | `/v1/products/categories/:id` | Delete category |
+| GET | `/v1/products/search` | Search products (filtering, sorting, pagination) |
+| GET | `/v1/product-categories/:id` | Get category by ID |
+| POST | `/api/v1/products` | Create product |
+| PUT | `/api/v1/products/:id` | Update product |
+| DELETE | `/api/v1/products/:id` | Delete product |
+| POST | `/api/v1/product-categories` | Create category |
+| PUT | `/api/v1/product-categories/:id` | Update category |
+| DELETE | `/api/v1/product-categories/:id` | Delete category |
 
 ### ORDERFC
 | Method | Path | Description |
 |--------|------|-------------|
-| POST | `/v1/orders/checkout` | Create order (checkout) |
-| GET | `/v1/orders/history` | Get order history by user |
+| POST | `/api/v1/orders` | Create order (checkout) |
+| GET | `/api/v1/orders/history` | Get order history by user |
 
 ### PAYMENTFC
 | Method | Path | Description |
 |--------|------|-------------|
-| POST | `/v1/payments/xendit/webhook` | Xendit webhook callback |
-| POST | `/v1/payments/invoice` | Create invoice manually |
-| GET | `/v1/payments/invoice/:order_id/pdf` | Download invoice PDF |
-| GET | `/v1/payments/failed` | List failed payments |
+| POST | `/v1/payment/webhook` | Xendit webhook callback |
+| POST | `/api/v1/payment/invoice` | Create invoice |
+| GET | `/api/v1/invoice/:order_id/pdf` | Download invoice PDF |
+| GET | `/api/v1/failed_payments` | List failed payments |
 
 ---
 
 ## Roadmap
 
 - [ ] Kubernetes deployment (local K8s + Helm charts)
-- [ ] Loki + Grafana for centralized logging and dashboards
+- [x] Loki + Grafana + Prometheus for centralized logging and metrics
 - [ ] Kafka production-grade configuration (partitions, replication, DLQ)
-- [ ] CI/CD pipeline (GitHub Actions)
+- [x] CI/CD pipeline (GitHub Actions)
 
 ---
 
