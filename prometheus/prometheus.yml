@@ -31,3 +31,10 @@ scrape_configs:
         labels:
           service: paymentfc
     metrics_path: /metrics
+
+  - job_name: node
+    static_configs:
+      - targets: [node_exporter:9100]
+        labels:
+          service: node_exporter
+    metrics_path: /metrics

@@ -421,6 +421,23 @@ Within each service:
 
 ---
 
+## Technical Improvements
+
+각 기술을 **"연결만 한 상태"** 에서 **"실무 수준으로 활용하는 상태"** 로 개선한 과정을 상세하게 기록했습니다.
+
+> **[docs/improvements/](./docs/improvements/)** — 전체 개선 기록 보기
+
+| Phase | 주제 | 핵심 키워드 |
+|-------|------|------------|
+| 0 | 모니터링 대시보드 | React, Vite, CORS Proxy |
+| 1 | [PostgreSQL 심화](./docs/improvements/phase1-postgresql.md) | GORM Callback, 인덱스, FOR UPDATE, CTE, Window Function |
+| 2 | [Redis 패턴](./docs/improvements/phase2-redis.md) | 캐시 무효화, 분산 락, Rate Limiting, Sorted Set |
+| 3 | [Kafka 아키텍처](./docs/improvements/phase3-kafka.md) | DLQ, 멱등성, 파티션 전략, 스키마 버전 |
+| 4 | [MongoDB 분석](./docs/improvements/phase4-mongodb.md) | Aggregation Pipeline, Change Stream, TTL |
+| 5 | [Observability](./docs/improvements/phase5-observability.md) | RED 메트릭, Grafana as Code, SLI/SLO |
+
+---
+
 ## Roadmap
 
 - [ ] Kubernetes deployment (local K8s + Helm charts)

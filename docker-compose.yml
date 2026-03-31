@@ -364,6 +364,8 @@ services:
     container_name: go-commerce-grafana
     ports:
       - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
     environment:
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=admin
@@ -431,6 +433,42 @@ services:
       - go-commerce-network
     restart: on-failure
 
+  # node_exporter — 호스트 메트릭 (CPU, 메모리, 디스크 등)
+  node_exporter:
+    image: prom/node-exporter:v1.8.2
+    container_name: go-commerce-node-exporter
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - --path.procfs=/host/proc
+      - --path.rootfs=/rootfs
+      - --path.sysfs=/host/sys
+      - --collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)
+    networks:
+      - go-commerce-network
+    restart: on-failure
+
+  # Frontend Dashboard
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: go-commerce-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - userfc
+      - productfc
+      - orderfc
+      - paymentfc
+    networks:
+      - go-commerce-network
+    restart: on-failure
+
 volumes:
   postgres_user_data:
   postgres_product_data:
@@ -445,6 +483,7 @@ volumes:
   paymentfc_logs:
   loki_data:
   prometheus_data:
+  grafana_data:
 
 networks:
   go-commerce-network:
