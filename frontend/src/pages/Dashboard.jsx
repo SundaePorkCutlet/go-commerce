@@ -89,9 +89,9 @@ export default function Dashboard() {
         <Card title="Learning Progress">
           <div className="space-y-3">
             {[
-              { phase: 0, label: 'Dashboard', status: 'active', pct: 100 },
-              { phase: 1, label: 'PostgreSQL Deep Dive', status: 'pending', pct: 0 },
-              { phase: 2, label: 'Redis Patterns', status: 'pending', pct: 0 },
+              { phase: 0, label: 'Dashboard', status: 'done', pct: 100 },
+              { phase: 1, label: 'PostgreSQL Deep Dive', status: 'done', pct: 100 },
+              { phase: 2, label: 'Redis Patterns', status: 'active', pct: 0 },
               { phase: 3, label: 'Kafka Architecture', status: 'pending', pct: 0 },
               { phase: 4, label: 'MongoDB Analytics', status: 'pending', pct: 0 },
               { phase: 5, label: 'Observability', status: 'pending', pct: 0 },
@@ -99,7 +99,7 @@ export default function Dashboard() {
               <div key={p.phase} className="flex items-center gap-3">
                 <span
                   className={`text-xs font-mono w-6 text-center ${
-                    p.status === 'active' ? 'text-blue-400' : 'text-gray-600'
+                    p.status === 'done' ? 'text-emerald-400' : p.status === 'active' ? 'text-blue-400' : 'text-gray-600'
                   }`}
                 >
                   {p.phase}
