@@ -72,8 +72,8 @@ flowchart TB
 
 | Service       | HTTP Port | gRPC Port | Responsibility |
 |--------------|-----------|-----------|----------------|
-| **USERFC**    | 28080     | 50051     | User registration, authentication (JWT), user info via gRPC |
-| **PRODUCTFC** | 28081     | —         | Product & category CRUD, inventory management, stock update/rollback via Kafka |
+| **USERFC**    | 28080     | 50051     | User registration, authentication (JWT), user info via gRPC; Redis: sliding-window rate limit on login/register, JWT blacklist on logout |
+| **PRODUCTFC** | 28081     | —         | Product & category CRUD, inventory management, stock via Kafka; Redis: cache-aside + invalidation, view-count ranking (Sorted Set) |
 | **ORDERFC**   | 28082     | —         | Order creation, order history, publishes `order.created` & `stock.updated`, consumes `payment.success` & `payment.failed` |
 | **PAYMENTFC** | 28083     | —         | Xendit invoice creation, webhook handling, batch processing, audit logging, publishes `payment.success` & `payment.failed` |
 
@@ -374,6 +374,8 @@ Within each service:
 ### Security & Configuration
 - **Secrets management** — HashiCorp Vault for sensitive configuration (API keys, DB credentials).
 - **JWT authentication** — USERFC issues JWT tokens; other services validate via gRPC or middleware.
+- **Token revocation** — Logout stores a SHA256 hash of the JWT in Redis with TTL = remaining lifetime; protected routes reject revoked tokens before signature validation.
+- **API abuse mitigation** — Login and register use a Redis Sorted Set sliding-window limiter (per client IP, 10 requests / 60s).
 - **gRPC inter-service** — PAYMENTFC fetches user info from USERFC via gRPC for type-safe, high-performance communication.
 
 ### Code Quality
@@ -388,16 +390,22 @@ Within each service:
 ### USERFC
 | Method | Path | Description |
 |--------|------|-------------|
-| POST | `/v1/register` | Register new user |
-| POST | `/v1/login` | Login and get JWT token |
+| POST | `/v1/register` | Register new user (rate limited) |
+| POST | `/v1/login` | Login and get JWT token (rate limited) |
+| POST | `/v1/logout` | Revoke current JWT (Redis blacklist) |
 | GET | `/api/v1/user-info` | Get current user info |
+| GET | `/debug/queries` | DB query observability (Phase 1) |
+| GET | `/debug/redis` | Redis connection / key count (Phase 2) |
 
 ### PRODUCTFC
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/v1/products/:id` | Get product by ID |
+| GET | `/v1/products/ranking` | Popular products by view count (Redis Sorted Set) |
 | GET | `/v1/products/search` | Search products (filtering, sorting, pagination) |
 | GET | `/v1/product-categories/:id` | Get category by ID |
+| GET | `/debug/queries` | DB query observability (Phase 1) |
+| GET | `/debug/redis` | Cache hit/miss stats + Redis key count (Phase 2) |
 | POST | `/api/v1/products` | Create product |
 | PUT | `/api/v1/products/:id` | Update product |
 | DELETE | `/api/v1/products/:id` | Delete product |
@@ -431,7 +439,7 @@ Within each service:
 |-------|------|------------|
 | 0 | 모니터링 대시보드 | React, Vite, CORS Proxy |
 | 1 | [PostgreSQL 심화](./docs/improvements/phase1-postgresql.md) | GORM Callback, 인덱스, FOR UPDATE, CTE, Window Function |
-| 2 | [Redis 패턴](./docs/improvements/phase2-redis.md) | 캐시 무효화, 분산 락, Rate Limiting, Sorted Set |
+| 2 | [Redis 패턴](./docs/improvements/phase2-redis.md) | 캐시 무효화(Cache-Aside DEL), Hit/Miss 모니터, 조회수 랭킹(ZINCRBY/ZREVRANGE), 슬라이딩 윈도 Rate Limit(ZSET), JWT 블랙리스트 |
 | 3 | [Kafka 아키텍처](./docs/improvements/phase3-kafka.md) | DLQ, 멱등성, 파티션 전략, 스키마 버전 |
 | 4 | [MongoDB 분석](./docs/improvements/phase4-mongodb.md) | Aggregation Pipeline, Change Stream, TTL |
 | 5 | [Observability](./docs/improvements/phase5-observability.md) | RED 메트릭, Grafana as Code, SLI/SLO |
