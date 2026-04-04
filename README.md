@@ -446,6 +446,50 @@ Within each service:
 
 ---
 
+## Production & operations (백업·고가용성 개념)
+
+이 레포의 **docker-compose**는 학습·포트폴리오용으로 **단일 PostgreSQL / 단일 Redis**에 가깝습니다. 아래는 **실제 운영**에서 자주 묻는 개념을 README에만 요약해 둔 것입니다. (상세 구현은 이 저장소 범위 밖입니다.)
+
+### 복구 목표 (면접·설계에서 자주 나옴)
+
+| 용어 | 의미 |
+|------|------|
+| **RPO** (Recovery Point Objective) | 장애 시 **어느 시점까지** 데이터를 되살릴 수 있는가 — 백업 주기·복제 방식이 결정 |
+| **RTO** (Recovery Time Objective) | 장애 후 **몇 분 안에** 서비스를 복구하는가 — 자동 페일오버·런북·복구 연습이 결정 |
+| **HA** (High Availability) | 단일 장애를 견디도록 **복제·전환**을 설계하는 것 (보통 동일 리전 내) |
+| **DR** (Disaster Recovery) | 리전/데이터센터 단위 재난에 대비한 **이중화·복구 계획** (HA보다 범위가 큼) |
+
+> **백업**은 RPO를, **스탠바이·페일오버**는 RTO·가용성을 맡는 경우가 많습니다. 둘 다 필요한 서비스가 많습니다.
+
+### PostgreSQL (운영에서 자주 하는 말)
+
+- **고가용성**: Streaming replication (동기/비동기), 자동 페일오버(Patroni, repmgr, **관리형 RDS Multi-AZ** 등), 읽기 전용 replica로 리포트 부하 분산.
+- **백업·복구**: 논리 백업(`pg_dump`) vs **물리 백업 + WAL 아카이빙**으로 **PITR**(특정 시점 복구). **복구 드릴**(백업 파일에서 실제로 올려보기)이 있는지가 운영 성숙도 지표로 잡히기도 함.
+- **그 외**: 연결 풀(PgBouncer), TLS, 시크릿 관리, VACUUM/장기 트랜잭션, 슬로우 쿼리·복제 지연·디스크 모니터링.
+
+### Redis (운영에서 자주 하는 말)
+
+- **역할에 따라 난이도가 갈림**: 순수 캐시(유실 허용) vs 세션·Rate limit·랭킹 등 **유실이 비즈에 영향** → 지속성·복제 정책을 더 타이트하게.
+- **고가용성**: **Redis Sentinel** — 단일 키 스페이스, 마스터+복제, 장애 시 승격. **Redis Cluster** — 슬롯 샤딩으로 수평 확장, 클러스터 인식 클라이언트 필요.
+- **지속성**: **RDB**(주기 스냅샷, 간단하지만 스냅샷 사이 유실 구간), **AOF**(append, `appendfsync` 정책에 따라 디스크·유실 트레이드오프).
+- **백업**: RDB/AOF 스냅샷 또는 관리형 자동 백업. PG처럼 “표준 PITR” 이야기보다 **스냅샷 + 복제**가 일반적.
+- **그 외**: `maxmemory`·eviction 정책, hot key/big key, TLS·ACL, private network.
+
+### 한눈에 비교
+
+| 항목 | PostgreSQL | Redis |
+|------|------------|--------|
+| HA 핵심 | 복제 + 자동 페일오버 | Sentinel(복제) vs Cluster(샤딩) |
+| 백업 핵심 | Dump vs 베이스+WAL(PITR) | RDB/AOF / 관리형 스냅샷 |
+| 유실·일관성 | 동기 복제, checkpoint | AOF fsync, 복제 lag |
+
+### 이 프로젝트와의 관계
+
+- 로컬 스택은 **운영급 백업·HA·암호화·정책**을 포함하지 않습니다.
+- 면접에서는 **“패턴은 코드로 익혔고, 프로덕션에서는 RPO/RTO에 맞춰 RDS·ElastiCache 등에서 복제·백업·모니터링을 설계한다”**처럼 구분해서 말하면 됩니다.
+
+---
+
 ## Roadmap
 
 - [ ] Kubernetes deployment (local K8s + Helm charts)
