@@ -145,6 +145,7 @@ sequenceDiagram
 | `order.created`  | ORDERFC     | PAYMENTFC             | Trigger invoice creation |
 | `stock.updated`  | ORDERFC     | PRODUCTFC             | Decrease product stock on order |
 | `stock.rollback` | ORDERFC     | PRODUCTFC             | Restore product stock on payment failure |
+| `stock.updated.dlq` / `stock.rollback.dlq` | PRODUCTFC | (ops / replay) | Failed consumer messages (wrapped JSON) |
 | `payment.success`| PAYMENTFC   | ORDERFC               | Mark order as completed |
 | `payment.failed` | PAYMENTFC   | ORDERFC               | Mark order as cancelled, trigger stock rollback |
 
@@ -406,6 +407,8 @@ Within each service:
 | GET | `/v1/product-categories/:id` | Get category by ID |
 | GET | `/debug/queries` | DB query observability (Phase 1) |
 | GET | `/debug/redis` | Cache hit/miss stats + Redis key count (Phase 2) |
+| GET | `/debug/kafka` | Kafka consumer stats, DLQ count (Phase 3) |
+| GET | `/debug/kafka/stream` | SSE: consumer stats every 2s (Phase 3) |
 | POST | `/api/v1/products` | Create product |
 | PUT | `/api/v1/products/:id` | Update product |
 | DELETE | `/api/v1/products/:id` | Delete product |
@@ -440,7 +443,7 @@ Within each service:
 | 0 | 모니터링 대시보드 | React, Vite, CORS Proxy |
 | 1 | [PostgreSQL 심화](./docs/improvements/phase1-postgresql.md) | GORM Callback, 인덱스, FOR UPDATE, CTE, Window Function |
 | 2 | [Redis 패턴](./docs/improvements/phase2-redis.md) | 캐시 무효화(Cache-Aside DEL), Hit/Miss 모니터, 조회수 랭킹(ZINCRBY/ZREVRANGE), 슬라이딩 윈도 Rate Limit(ZSET), JWT 블랙리스트 |
-| 3 | [Kafka 아키텍처](./docs/improvements/phase3-kafka.md) | DLQ, 멱등성, 파티션 전략, 스키마 버전 |
+| 3 | [Kafka 아키텍처](./docs/improvements/phase3-kafka.md) | DLQ 토픽, Redis 멱등 키, Hash 파티셔너+user_id 키, schema_version, `/debug/kafka` |
 | 4 | [MongoDB 분석](./docs/improvements/phase4-mongodb.md) | Aggregation Pipeline, Change Stream, TTL |
 | 5 | [Observability](./docs/improvements/phase5-observability.md) | RED 메트릭, Grafana as Code, SLI/SLO |
 

@@ -100,13 +100,18 @@ export default function KafkaPage() {
               </div>
               <div className="bg-gray-800/50 rounded-lg p-3">
                 <p className="text-lg font-bold text-emerald-400">{data.messages_consumed ?? 0}</p>
-                <p className="text-xs text-gray-500">Consumed</p>
+                <p className="text-xs text-gray-500">Consumed (ok+dup)</p>
               </div>
               <div className="bg-gray-800/50 rounded-lg p-3">
                 <p className="text-lg font-bold text-red-400">{data.dlq_count ?? 0}</p>
                 <p className="text-xs text-gray-500">DLQ</p>
               </div>
             </div>
+            {data.consumer_stats && (
+              <pre className="mt-3 text-[10px] text-gray-500 font-mono overflow-x-auto bg-gray-900/40 rounded p-2">
+                {JSON.stringify(data.consumer_stats, null, 2)}
+              </pre>
+            )}
           </Card>
         ))}
       </div>
