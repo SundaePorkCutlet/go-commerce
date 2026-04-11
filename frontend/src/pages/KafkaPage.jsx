@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { RefreshCw, Radio } from 'lucide-react'
 import Card from '../components/Card'
-import EmptyState from '../components/EmptyState'
 import { SERVICES, fetchKafkaStats } from '../api/services'
 
 export default function KafkaPage() {
@@ -52,28 +51,20 @@ export default function KafkaPage() {
     return () => { if (eventSourceRef.current) eventSourceRef.current.close() }
   }, [])
 
-  if (!available) {
-    return (
-      <div className="space-y-6">
-        <h1 className="text-2xl font-bold">Kafka Monitor</h1>
-        <EmptyState
-          phase={3}
-          title="Kafka Event Architecture"
-          description="각 서비스에 /debug/kafka 엔드포인트와 SSE 스트림을 구현하면 실시간 이벤트 흐름을 관측할 수 있습니다."
-          items={[
-            'PRODUCTFC stock.updated/rollback 컨슈머 완성',
-            'Dead Letter Queue (DLQ) 구현',
-            '멱등성(Idempotency) 보장 - Redis SET 활용',
-            '파티션 키 전략 (user_id 기반 순서 보장)',
-            '이벤트 스키마 버전 관리',
-          ]}
-        />
-      </div>
-    )
-  }
-
   return (
     <div className="space-y-6">
+      {!available && (
+        <div className="rounded-lg border border-amber-800/40 bg-amber-950/30 px-4 py-3 text-sm text-amber-100/90">
+          <p className="font-medium text-amber-200">Kafka 엔드포인트에 연결되지 않았습니다</p>
+          <p className="mt-1 text-xs text-amber-200/80">
+            Phase 3는 구현된 상태입니다. USERFC·PRODUCTFC·ORDERFC·PAYMENTFC를 띄운 뒤(예:{' '}
+            <code className="rounded bg-black/30 px-1 py-0.5 text-[11px]">docker compose</code>
+            ) 위의 새로고침을 누르면 <code className="rounded bg-black/30 px-1 py-0.5 text-[11px]">/debug/kafka</code>{' '}
+            통계가 채워집니다.
+          </p>
+        </div>
+      )}
+
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Kafka Monitor</h1>
         <div className="flex gap-2">
@@ -91,29 +82,39 @@ export default function KafkaPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {Object.entries(stats).map(([svcKey, data]) => (
-          <Card key={svcKey} title={`${SERVICES[svcKey].name} - Kafka Stats`}>
-            <div className="grid grid-cols-3 gap-3 text-center">
-              <div className="bg-gray-800/50 rounded-lg p-3">
-                <p className="text-lg font-bold text-blue-400">{data.messages_produced ?? 0}</p>
-                <p className="text-xs text-gray-500">Produced</p>
+        {Object.keys(SERVICES).map((svcKey) => {
+          const data = stats[svcKey]
+          const offline = !data
+          return (
+            <Card key={svcKey} title={`${SERVICES[svcKey].name} - Kafka Stats`}>
+              {offline && (
+                <p className="mb-3 text-xs text-gray-500">
+                  <span className="rounded bg-gray-800 px-1.5 py-0.5 text-gray-400">offline</span>
+                  {' '}/debug/kafka 응답 없음
+                </p>
+              )}
+              <div className="grid grid-cols-3 gap-3 text-center">
+                <div className="bg-gray-800/50 rounded-lg p-3">
+                  <p className="text-lg font-bold text-blue-400">{data?.messages_produced ?? 0}</p>
+                  <p className="text-xs text-gray-500">Produced</p>
+                </div>
+                <div className="bg-gray-800/50 rounded-lg p-3">
+                  <p className="text-lg font-bold text-emerald-400">{data?.messages_consumed ?? 0}</p>
+                  <p className="text-xs text-gray-500">Consumed (ok+dup)</p>
+                </div>
+                <div className="bg-gray-800/50 rounded-lg p-3">
+                  <p className="text-lg font-bold text-red-400">{data?.dlq_count ?? 0}</p>
+                  <p className="text-xs text-gray-500">DLQ</p>
+                </div>
               </div>
-              <div className="bg-gray-800/50 rounded-lg p-3">
-                <p className="text-lg font-bold text-emerald-400">{data.messages_consumed ?? 0}</p>
-                <p className="text-xs text-gray-500">Consumed (ok+dup)</p>
-              </div>
-              <div className="bg-gray-800/50 rounded-lg p-3">
-                <p className="text-lg font-bold text-red-400">{data.dlq_count ?? 0}</p>
-                <p className="text-xs text-gray-500">DLQ</p>
-              </div>
-            </div>
-            {data.consumer_stats && (
-              <pre className="mt-3 text-[10px] text-gray-500 font-mono overflow-x-auto bg-gray-900/40 rounded p-2">
-                {JSON.stringify(data.consumer_stats, null, 2)}
-              </pre>
-            )}
-          </Card>
-        ))}
+              {data?.consumer_stats && (
+                <pre className="mt-3 text-[10px] text-gray-500 font-mono overflow-x-auto bg-gray-900/40 rounded p-2">
+                  {JSON.stringify(data.consumer_stats, null, 2)}
+                </pre>
+              )}
+            </Card>
+          )
+        })}
       </div>
 
       <Card title={`Event Stream ${sseConnected ? '(live)' : '(disconnected)'}`}>

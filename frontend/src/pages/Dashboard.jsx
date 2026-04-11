@@ -92,7 +92,7 @@ export default function Dashboard() {
               { phase: 0, label: 'Dashboard', status: 'done', pct: 100 },
               { phase: 1, label: 'PostgreSQL Deep Dive', status: 'done', pct: 100 },
               { phase: 2, label: 'Redis Patterns', status: 'active', pct: 0 },
-              { phase: 3, label: 'Kafka Architecture', status: 'pending', pct: 0 },
+              { phase: 3, label: 'Kafka Architecture', status: 'done', pct: 100 },
               { phase: 4, label: 'MongoDB Analytics', status: 'pending', pct: 0 },
               { phase: 5, label: 'Observability', status: 'pending', pct: 0 },
             ].map((p) => (
