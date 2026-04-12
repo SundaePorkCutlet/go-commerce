@@ -1,0 +1,35 @@
+# Phase 5: 알림 규칙 (Prometheus)
+groups:
+  - name: commerce_http
+    interval: 30s
+    rules:
+      - alert: FCScrapeTargetDown
+        expr: up{job=~"userfc|productfc|orderfc|paymentfc"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Prometheus scrape target down ({{ $labels.job }})"
+          description: "Service {{ $labels.job }} / {{ $labels.instance }} is not responding to scrapes."
+
+      - alert: HighHTTP5xxRate
+        expr: |
+          sum(rate(commerce_http_requests_total{status=~"5.."}[5m])) by (service)
+            /
+          sum(rate(commerce_http_requests_total[5m])) by (service)
+          > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High 5xx ratio on {{ $labels.service }}"
+          description: "More than 5% of HTTP responses are 5xx in the last 5m (per service process)."
+
+      - alert: XenditWebhookProcessErrors
+        expr: increase(commerce_payment_xendit_webhook_processed_total{outcome="process_error"}[15m]) > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Repeated Xendit webhook process_error (paymentfc)"
+          description: "More than 5 process_error outcomes in 15m — check paymentfc logs."

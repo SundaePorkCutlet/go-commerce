@@ -14,7 +14,7 @@
 | **Redis** | 상품 단건 캐시 (GET/SET) | 캐시 무효화, 분산 락, Rate Limiting, 실시간 랭킹, 토큰 블랙리스트 |
 | **Kafka** | 기본 Producer/Consumer | DLQ, 멱등성, 파티션 전략, 스키마 버전 관리 |
 | **MongoDB** | InsertOne (감사 로그 저장만) | Aggregation Pipeline, Change Stream, TTL 인덱스, 조회 API |
-| **Observability** | /metrics 엔드포인트만 노출 | 커스텀 RED 메트릭, Grafana as Code, 알림 규칙, SLI/SLO |
+| **Observability** | /metrics 엔드포인트만 노출 | HTTP RED·비즈니스 카운터, Prometheus 알림, Grafana 프로비저닝·대시보드 JSON, Kafka/gRPC 스팬, SLI/SLO 개념 |
 
 ---
 

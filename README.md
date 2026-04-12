@@ -231,7 +231,7 @@ This starts:
 | **Monitoring** | | |
 | Loki | 3100 | http://localhost:3100 |
 | Prometheus | 9090 | http://localhost:9090 |
-| Grafana | 3000 | http://localhost:3000 |
+| Grafana | 3002 | http://localhost:3002 |
 | node_exporter | 9100 | http://localhost:9100/metrics |
 
 Each service exposes **Swagger UI** for API documentation and try-it-out:
@@ -255,7 +255,7 @@ Centralized logs and metrics are provided by Loki, Prometheus, Grafana, Promtail
 |-----------|------|------|
 | **Loki** | Log storage; receives log streams from Promtail | 3100 |
 | **Prometheus** | Scrapes metrics from each FC `/metrics` and node_exporter | 9090 |
-| **Grafana** | UI for dashboards and ad-hoc queries (logs + metrics) | 3000 |
+| **Grafana** | UI for dashboards and ad-hoc queries (logs + metrics) | 3002 |
 | **Promtail** | Per-service agent; tails app log files and sends to Loki | — |
 | **node_exporter** | Host-level metrics (CPU, memory, disk, network) | 9100 |
 
@@ -274,8 +274,9 @@ Central config (single place):
 
 ### Grafana
 
-- **URL**: http://localhost:3000  
+- **URL**: http://localhost:3002 (호스트 포트; Vite `3000`과 겹치지 않게 분리)
 - **Login**: `admin` / `admin` (change on first use if prompted).
+- **Phase 5 대시보드**: 프로비저닝으로 **Prometheus / Loki** 데이터소스와 **Go Commerce — HTTP RED** 대시보드가 로드됩니다 (`grafana/provisioning/`, `grafana/dashboards/`).
 - **Data sources** (add once, then reuse):
   - **Loki**: URL `http://loki:3100` → Save & test.
   - **Prometheus**: URL `http://prometheus:9090` → Save & test.
@@ -429,6 +430,13 @@ Within each service:
 | POST | `/api/v1/payment/invoice` | Create invoice |
 | GET | `/api/v1/invoice/:order_id/pdf` | Download invoice PDF |
 | GET | `/api/v1/failed_payments` | List failed payments |
+| GET | `/debug/mongo/audit-logs` | 감사 로그 목록 (필터·커서 페이지네이션, Phase 4) |
+| GET | `/debug/mongo/audit-report/daily` | 일별·이벤트별 집계 (Aggregation, Phase 4) |
+| GET | `/debug/mongo/stream` | SSE: 감사 로그 insert 스트림 (Change Stream, Replica Set 권장, Phase 4) |
+| GET | `/api/v1/audit-logs` | 위 목록과 동일 (JWT 필요) |
+| GET | `/api/v1/audit-report/daily` | 위 일별 리포트와 동일 (JWT 필요) |
+
+프론트 대시보드 **MongoDB** 탭(`MongoPage`)은 개발 시 Vite 프록시 기준으로 위 경로를 호출합니다. Docker로 띄운 정적 프론트는 **호스트 `3001`**(compose의 `frontend` 서비스)에서 동일 UI를 제공합니다.
 
 ---
 
@@ -445,7 +453,7 @@ Within each service:
 | 2 | [Redis 패턴](./docs/improvements/phase2-redis.md) | 캐시 무효화(Cache-Aside DEL), Hit/Miss 모니터, 조회수 랭킹(ZINCRBY/ZREVRANGE), 슬라이딩 윈도 Rate Limit(ZSET), JWT 블랙리스트 |
 | 3 | [Kafka 아키텍처](./docs/improvements/phase3-kafka.md) | DLQ 토픽, Redis 멱등 키, Hash 파티셔너+user_id 키, schema_version, `/debug/kafka` |
 | 4 | [MongoDB 분석](./docs/improvements/phase4-mongodb.md) | Aggregation Pipeline, Change Stream, TTL |
-| 5 | [Observability](./docs/improvements/phase5-observability.md) | RED 메트릭, Grafana as Code, SLI/SLO |
+| 5 | [Observability](./docs/improvements/phase5-observability.md) | HTTP RED·Xendit 카운터, Prometheus 알림, Grafana 프로비저닝, Kafka/gRPC 스팬, SLI/SLO 개념 |
 
 ---
 
