@@ -98,14 +98,3 @@ TTL은 Mongo 백그라운드 만료 작업으로 자동 삭제됨.
 | `PAYMENTFC/cmd/payment/handler/handler.go` | `/audit-logs`, `/audit-report`, `/stream` 핸들러 |
 | `PAYMENTFC/routes/routes.go` | debug + 인증 라우트 연결 |
 | `frontend/src/pages/MongoPage.jsx` | 조회 UI, 리포트 차트, Change Stream SSE 표시 |
-
----
-
-## 면접 포인트
-
-1. **왜 커서 페이지네이션?**  
-   로그성 데이터는 offset 성능이 나빠지므로 `_id` 기반 커서가 안정적.
-2. **왜 TTL 인덱스?**  
-   운영 보존기간 정책(예: 90일) 자동화로 저장소 비용·관리 부담 감소.
-3. **Change Stream 한계?**  
-   Replica Set 필수. 로컬 단일 Mongo에서는 fallback 설계 필요.

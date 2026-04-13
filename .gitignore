@@ -43,3 +43,6 @@ bin/
 # Temporary files
 tmp/
 temp/
+
+# Interview preparation (private)
+INTERVIEW_PREP.md

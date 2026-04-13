@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1600">
+<title>Go Commerce — System Architecture</title>
+<style>
+  :root { --shadow:0 2px 6px rgba(0,0,0,.12); --r:7px; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Segoe UI',system-ui,-apple-system,sans-serif; background:#F4F6FA; color:#1B2430; padding:18px 24px; }
+  h1 { width:1620px; margin:0 auto; text-align:center; font-size:23px; font-weight:800; }
+  .sub { width:1620px; margin:2px auto 12px; text-align:center; font-size:12px; color:#78909C; }
+
+  #canvas { position:relative; width:1620px; height:950px; margin:0 auto; }
+
+  /* layer bg */
+  .lb { position:absolute; border-radius:var(--r); opacity:.18; pointer-events:none; }
+  .lb-edge { background:#80CBC4; left:0; top:0; width:1030px; height:110px; }
+  .lb-app  { background:#90CAF9; left:0; top:120px; width:1030px; height:430px; }
+  .lb-infra{ background:#C5CAE9; left:0; top:580px; width:1030px; height:140px; }
+  .lb-obs  { background:#FFF176; left:1060px; top:120px; width:550px; height:480px; }
+
+  .ll { position:absolute; font-size:11px; font-weight:800; color:#fff; padding:3px 10px; border-radius:0 0 5px 5px; letter-spacing:.3px; z-index:5; }
+  .ll-edge { background:#00796B; left:6px; top:0; }
+  .ll-app  { background:#0D47A1; left:6px; top:120px; }
+  .ll-infra{ background:#283593; left:6px; top:580px; }
+  .ll-obs  { background:#F57F17; left:1068px; top:120px; }
+
+  /* node card */
+  .n { position:absolute; border:2px solid; border-radius:var(--r); background:#fff; box-shadow:var(--shadow); overflow:hidden; z-index:4; }
+  .n-h { padding:5px 8px; font-weight:700; font-size:13px; color:#fff; text-align:center; display:flex; align-items:center; justify-content:center; gap:5px; }
+  .n-h img { width:18px; height:18px; flex-shrink:0; }
+  .n-b { padding:5px 6px; font-size:10.5px; line-height:1.45; }
+  .n-b .t { display:block; padding:2px 5px; border-radius:3px; font-size:10px; font-weight:600; margin-bottom:2px; text-align:center; }
+  .port { display:inline-block; padding:1px 5px; border-radius:3px; font-size:9px; font-weight:700; color:#fff; background:#455A64; margin:1px; }
+
+  .n.app .n-b { min-height:172px; }
+
+  .n.edge  { border-color:#00897B; } .n.edge .n-h  { background:#00796B; }
+  .n.app   { border-color:#1565C0; } .n.app .n-h   { background:#0D47A1; }
+  .n.infra { border-color:#1A237E; } .n.infra .n-h { background:#1A237E; }
+  .n.ext   { border-color:#C62828; } .n.ext .n-h   { background:#B71C1C; }
+  .n.data  { border-color:#2E7D32; } .n.data .n-h  { background:#1B5E20; }
+  .n.plat  { border-color:#7B1FA2; } .n.plat .n-h  { background:#6A1B9A; }
+  .n.obs   { border-color:#F9A825; } .n.obs .n-h   { background:#F57F17; }
+
+  .t.go { background:#BBDEFB; color:#0D47A1; }
+  .t.fw { background:#C8E6C9; color:#1B5E20; }
+  .t.db { background:#DCEDC8; color:#33691E; }
+  .t.ca { background:#FFCCBC; color:#BF360C; }
+  .t.ms { background:#E8EAF6; color:#1A237E; }
+  .t.ob { background:#FFF9C4; color:#F57F17; }
+  .t.sc { background:#E1BEE7; color:#4A148C; }
+  .t.ex { background:#F8BBD0; color:#880E4F; }
+
+  #lines { position:absolute; top:0; left:0; width:100%; height:100%; z-index:3; pointer-events:none; }
+
+  .legend { display:flex; gap:14px; flex-wrap:wrap; align-items:center; width:1620px; min-width:1620px; max-width:1620px; margin:12px auto 0; padding:8px 14px; background:#fff; border:1px solid #CFD8DC; border-radius:var(--r); font-size:11px; }
+  .li { display:flex; align-items:center; gap:4px; }
+  .sw { width:12px; height:12px; border-radius:3px; border:1px solid #90A4AE; }
+  .proto { display:inline-block; padding:2px 6px; border-radius:3px; font-size:9px; font-weight:700; color:#fff; }
+  .note { width:1620px; min-width:1620px; max-width:1620px; margin:8px auto 0; padding:7px 12px; background:#ECEFF1; border-radius:var(--r); font-size:10px; color:#455A64; line-height:1.6; }
+</style>
+</head>
+<body>
+<h1>Go Commerce — System Architecture</h1>
+<p class="sub">Event-driven e-commerce · Go microservices · DB per Service · Kafka · Full observability</p>
+
+<div id="canvas">
+  <div class="lb lb-edge"></div>
+  <div class="lb lb-app"></div>
+  <div class="lb lb-infra"></div>
+  <div class="lb lb-obs"></div>
+  <div class="ll ll-edge">Edge · Client</div>
+  <div class="ll ll-app">Application · Go Microservices</div>
+  <div class="ll ll-infra">Infrastructure · Messaging · Data</div>
+  <div class="ll ll-obs">Observability</div>
+
+  <!-- EDGE -->
+  <div id="browser" class="n edge" style="left:240px;top:14px;width:165px">
+    <div class="n-h"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/react/react-original.svg" alt="">Browser / SPA</div>
+    <div class="n-b"><span class="t fw">React · Vite</span></div>
+  </div>
+  <div id="frontend" class="n edge" style="left:530px;top:14px;width:175px">
+    <div class="n-h"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/nginx/nginx-original.svg" alt="">Frontend · Nginx</div>
+    <div class="n-b">
+      <span class="t fw">Nginx (Reverse Proxy)</span>
+      <span class="t fw">Static build</span>
+      <span class="port">:3001</span>
+    </div>
+  </div>
+
+  <!-- APPLICATION -->
+  <div id="userfc" class="n app" style="left:15px;top:210px;width:200px">
+    <div class="n-h"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/go/go-original.svg" alt="">USER</div>
+    <div class="n-b">
+      <span class="t go">Go 1.22+</span>
+      <span class="t fw">Gin · GORM</span>
+      <span class="t db">PostgreSQL (user)</span>
+      <span class="t ca">Redis — rate limit · JWT blacklist</span>
+      <span class="t sc">Vault — secrets</span>
+      <span class="t ob">Prometheus RED · OTLP</span>
+      <div style="margin-top:3px"><span class="port">REST :28080</span> <span class="port">gRPC :50051</span></div>
+    </div>
+  </div>
+  <div id="productfc" class="n app" style="left:255px;top:210px;width:200px">
+    <div class="n-h"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/go/go-original.svg" alt="">PRODUCT</div>
+    <div class="n-b">
+      <span class="t go">Go 1.22+</span>
+      <span class="t fw">Gin · GORM</span>
+      <span class="t db">PostgreSQL (product)</span>
+      <span class="t ca">Redis — cache-aside · ranking</span>
+      <span class="t ms">Kafka consumer (stock)</span>
+      <span class="t ob">Prometheus RED · OTLP</span>
+      <div style="margin-top:3px"><span class="port">REST :28081</span></div>
+    </div>
+  </div>
+  <div id="orderfc" class="n app" style="left:495px;top:210px;width:200px">
+    <div class="n-h"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/go/go-original.svg" alt="">ORDER</div>
+    <div class="n-b">
+      <span class="t go">Go 1.22+</span>
+      <span class="t fw">Gin · GORM</span>
+      <span class="t db">PostgreSQL (order)</span>
+      <span class="t ca">Redis — session</span>
+      <span class="t ms">Kafka pub/sub (order · stock)</span>
+      <span class="t ob">Prometheus RED · OTLP</span>
+      <div style="margin-top:3px"><span class="port">REST :28082</span></div>
+    </div>
+  </div>
+  <div id="paymentfc" class="n app" style="left:735px;top:210px;width:250px">
+    <div class="n-h"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/go/go-original.svg" alt="">PAYMENT</div>
+    <div class="n-b">
+      <span class="t go">Go 1.22+</span>
+      <span class="t fw">Gin · GORM</span>
+      <span class="t db">PostgreSQL (payment) · MongoDB</span>
+      <span class="t ca">Redis</span>
+      <span class="t ms">Kafka pub/sub (payment events)</span>
+      <span class="t ex">Xendit — Invoice · Webhook</span>
+      <span class="t ob">Prometheus RED + biz · OTLP</span>
+      <div style="margin-top:3px"><span class="port">REST :28083</span></div>
+    </div>
+  </div>
+
+  <!-- INFRASTRUCTURE (aligned with services above) -->
+  <div id="redis" class="n data" style="left:20px;top:605px;width:175px">
+    <div class="n-h"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/redis/redis-original.svg" alt="">Redis</div>
+    <div class="n-b">
+      <span class="t ca">Cache · Rate limit · JWT</span>
+      <span class="port">:6379</span>
+    </div>
+  </div>
+  <div id="kafka" class="n infra" style="left:370px;top:600px;width:210px">
+    <div class="n-h"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/apachekafka/apachekafka-original.svg" alt="">Apache Kafka</div>
+    <div class="n-b">
+      <span class="t ms">CP-Kafka 7.6 + Zookeeper</span>
+      <span class="t ms">order · stock · payment</span>
+      <span class="port">:29092</span>
+    </div>
+  </div>
+  <div id="mongodb" class="n data" style="left:740px;top:605px;width:115px">
+    <div class="n-h"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/mongodb/mongodb-original.svg" alt="">MongoDB</div>
+    <div class="n-b">
+      <span class="t db">Audit Log</span>
+      <span class="port">:27017</span>
+    </div>
+  </div>
+  <div id="xendit" class="n ext" style="left:865px;top:600px;width:150px">
+    <div class="n-h">💳 Xendit</div>
+    <div class="n-b">
+      <span class="t ex">Invoice API (HTTPS)</span>
+      <span class="t ex">Webhook callback</span>
+    </div>
+  </div>
+  <div id="vault" class="n plat" style="left:20px;top:750px;width:145px">
+    <div class="n-h">🔐 HashiCorp Vault</div>
+    <div class="n-b">
+      <span class="t sc">Dev mode · Secrets</span>
+      <span class="port">:8200</span>
+    </div>
+  </div>
+
+  <!-- OBSERVABILITY -->
+  <div id="prometheus" class="n obs" style="left:1090px;top:155px;width:170px">
+    <div class="n-h"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/prometheus/prometheus-original.svg" alt="">Prometheus</div>
+    <div class="n-b">
+      <span class="t ob">v2.52 · scrape 4 services</span>
+      <span class="t ob">alerting rules</span>
+      <span class="port">:9090</span>
+    </div>
+  </div>
+  <div id="nodeexp" class="n obs" style="left:1295px;top:155px;width:110px">
+    <div class="n-h" style="font-size:9px">📈 node_exporter</div>
+    <div class="n-b"><span class="port">:9100</span></div>
+  </div>
+  <div id="jaeger" class="n obs" style="left:1090px;top:340px;width:170px">
+    <div class="n-h"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/jaegertracing/jaegertracing-original.svg" alt="">Jaeger</div>
+    <div class="n-b">
+      <span class="t ob">Distributed Tracing</span>
+      <span class="port">OTLP :4317</span> <span class="port">UI :16686</span>
+    </div>
+  </div>
+  <div id="loki" class="n obs" style="left:1090px;top:510px;width:170px">
+    <div class="n-h"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/grafana/grafana-original.svg" alt="">Loki + Promtail</div>
+    <div class="n-b">
+      <span class="t ob">Loki 2.9.4 · Promtail ×4</span>
+      <span class="port">:3100</span>
+    </div>
+  </div>
+  <div id="grafana" class="n obs" style="left:1330px;top:330px;width:200px">
+    <div class="n-h" style="font-size:11px"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/grafana/grafana-original.svg" alt="">Grafana — Dashboard</div>
+    <div class="n-b">
+      <span class="t ob">grafana 11.2 · Provisioned</span>
+      <span class="t ob">HTTP RED · Webhook panels</span>
+      <span class="port">:3002</span>
+    </div>
+  </div>
+
+  <!-- SVG -->
+  <svg id="lines" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="a-bl" viewBox="0 0 10 6" refX="9" refY="3" markerWidth="7" markerHeight="5" orient="auto"><path d="M0,0L10,3L0,6z" fill="#1565C0"/></marker>
+      <marker id="a-pu" viewBox="0 0 10 6" refX="9" refY="3" markerWidth="7" markerHeight="5" orient="auto"><path d="M0,0L10,3L0,6z" fill="#7B1FA2"/></marker>
+      <marker id="a-or" viewBox="0 0 10 6" refX="9" refY="3" markerWidth="7" markerHeight="5" orient="auto"><path d="M0,0L10,3L0,6z" fill="#1A237E"/></marker>
+      <marker id="a-rd" viewBox="0 0 10 6" refX="9" refY="3" markerWidth="7" markerHeight="5" orient="auto"><path d="M0,0L10,3L0,6z" fill="#C62828"/></marker>
+      <marker id="a-gn" viewBox="0 0 10 6" refX="9" refY="3" markerWidth="7" markerHeight="5" orient="auto"><path d="M0,0L10,3L0,6z" fill="#2E7D32"/></marker>
+      <marker id="a-yw" viewBox="0 0 10 6" refX="9" refY="3" markerWidth="7" markerHeight="5" orient="auto"><path d="M0,0L10,3L0,6z" fill="#F57F17"/></marker>
+      <marker id="a-cy" viewBox="0 0 10 6" refX="9" refY="3" markerWidth="7" markerHeight="5" orient="auto"><path d="M0,0L10,3L0,6z" fill="#00838F"/></marker>
+      <marker id="a-am" viewBox="0 0 10 6" refX="9" refY="3" markerWidth="7" markerHeight="5" orient="auto"><path d="M0,0L10,3L0,6z" fill="#FF8F00"/></marker>
+      <marker id="ar-bl" viewBox="0 0 10 6" refX="1" refY="3" markerWidth="7" markerHeight="5" orient="auto"><path d="M10,0L0,3L10,6z" fill="#1565C0"/></marker>
+      <marker id="ar-or" viewBox="0 0 10 6" refX="1" refY="3" markerWidth="7" markerHeight="5" orient="auto"><path d="M10,0L0,3L10,6z" fill="#1A237E"/></marker>
+      <marker id="ar-rd" viewBox="0 0 10 6" refX="1" refY="3" markerWidth="7" markerHeight="5" orient="auto"><path d="M10,0L0,3L10,6z" fill="#C62828"/></marker>
+    </defs>
+  </svg>
+</div>
+
+<div class="legend">
+  <b>Legend</b>
+  <div class="li"><div class="sw" style="background:#E0F2F1;border-color:#00897B"></div>Edge</div>
+  <div class="li"><div class="sw" style="background:#E3F2FD;border-color:#1565C0"></div>Application</div>
+  <div class="li"><div class="sw" style="background:#E8EAF6;border-color:#1A237E"></div>Infra</div>
+  <div class="li"><div class="sw" style="background:#FCE4EC;border-color:#C62828"></div>External</div>
+  <div class="li"><div class="sw" style="background:#E8F5E9;border-color:#2E7D32"></div>Data</div>
+  <div class="li"><div class="sw" style="background:#F3E5F5;border-color:#7B1FA2"></div>Platform</div>
+  <div class="li"><div class="sw" style="background:#FFF8E1;border-color:#F9A825"></div>Observability</div>
+  <span style="color:#B0BEC5">│</span>
+  <div class="li"><span class="proto" style="background:#1565C0">HTTP/JSON</span></div>
+  <div class="li"><span class="proto" style="background:#7B1FA2">gRPC</span></div>
+  <div class="li"><span class="proto" style="background:#1A237E">Pub/Sub</span></div>
+  <div class="li"><span class="proto" style="background:#C62828">Webhook</span></div>
+  <div class="li"><span class="proto" style="background:#F57F17">/metrics</span></div>
+  <div class="li"><span class="proto" style="background:#00838F">OTLP</span></div>
+</div>
+<div class="note">
+  <b>Summary:</b> "DB-per-service with PostgreSQL, Kafka domain events, Prometheus RED + Jaeger OTLP on every Go microservice, visualized via Grafana for production-grade observability."
+  &nbsp;&nbsp;|&nbsp;&nbsp;<b>PNG:</b> Chrome → <code>Cmd+Shift+P</code> → Capture full size screenshot
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const NS = 'http://www.w3.org/2000/svg';
+  const svg = document.getElementById('lines');
+  const cr = document.getElementById('canvas').getBoundingClientRect();
+
+  function g(id) {
+    const r = document.getElementById(id).getBoundingClientRect();
+    return { x: r.left - cr.left, y: r.top - cr.top, w: r.width, h: r.height,
+             cx: r.left - cr.left + r.width/2, cy: r.top - cr.top + r.height/2,
+             t: r.top - cr.top, b: r.top - cr.top + r.height,
+             l: r.left - cr.left, r: r.left - cr.left + r.width };
+  }
+
+  function line(x1,y1,x2,y2,c,m,o) {
+    o=o||{};
+    const e=document.createElementNS(NS,'line');
+    e.setAttribute('x1',x1);e.setAttribute('y1',y1);e.setAttribute('x2',x2);e.setAttribute('y2',y2);
+    e.setAttribute('stroke',c);e.setAttribute('stroke-width',o.w||'2');
+    if(o.d) e.setAttribute('stroke-dasharray','6,3');
+    if(m) e.setAttribute('marker-end','url(#a-'+m+')');
+    if(o.ms) e.setAttribute('marker-start','url(#ar-'+o.ms+')');
+    svg.appendChild(e);
+  }
+
+  function path(d,c,m,o) {
+    o=o||{};
+    const e=document.createElementNS(NS,'path');
+    e.setAttribute('d',d);e.setAttribute('stroke',c);e.setAttribute('stroke-width',o.w||'2');
+    e.setAttribute('fill','none');
+    if(o.d) e.setAttribute('stroke-dasharray','6,3');
+    if(m) e.setAttribute('marker-end','url(#a-'+m+')');
+    if(o.ms) e.setAttribute('marker-start','url(#ar-'+o.ms+')');
+    svg.appendChild(e);
+  }
+
+  function lbl(x,y,t,c) {
+    const tw=t.length*6.5+10, th=16;
+    const r=document.createElementNS(NS,'rect');
+    r.setAttribute('x',x-tw/2);r.setAttribute('y',y-12);r.setAttribute('width',tw);r.setAttribute('height',th);
+    r.setAttribute('fill','#ffffffee');r.setAttribute('rx','3');r.setAttribute('stroke',c);r.setAttribute('stroke-width','.5');
+    svg.appendChild(r);
+    const tx=document.createElementNS(NS,'text');
+    tx.setAttribute('x',x);tx.setAttribute('y',y);tx.setAttribute('text-anchor','middle');
+    tx.setAttribute('fill',c);tx.setAttribute('font-size','10.5');tx.setAttribute('font-weight','700');
+    tx.setAttribute('font-family','system-ui,sans-serif');
+    tx.textContent=t;
+    svg.appendChild(tx);
+  }
+
+  const B=g('browser'), F=g('frontend');
+  const U=g('userfc'), P=g('productfc'), O=g('orderfc'), PY=g('paymentfc');
+  const KF=g('kafka'), RD=g('redis'), MG=g('mongodb'), XN=g('xendit'), VL=g('vault');
+  const PR=g('prometheus'), JG=g('jaeger'), LK=g('loki'), GR=g('grafana'), NE=g('nodeexp');
+
+  // ═══ 1. Browser ↔ Frontend ═══
+  const edgeY = Math.round((B.cy + F.cy) / 2);
+  line(B.r, edgeY, F.l, edgeY, '#1565C0', 'bl', {ms:'bl'});
+  lbl((B.r+F.l)/2, edgeY-8, 'HTTP', '#1565C0');
+
+  // ═══ 2. Frontend → 4 FC (Manhattan fan: 트렁크 + 수평 분기 + 수직 드롭) ═══
+  const trunkX = F.cx;
+  const trunkY = F.b;
+  const fanY = 175;  // 수평 분기 y (HTTP)
+  // 트렁크 (수직, 위쪽에 반환 화살표)
+  line(trunkX, trunkY, trunkX, fanY, '#1565C0', null, {ms:'bl'});
+  // 수평 레일
+  line(U.cx, fanY, PY.cx, fanY, '#1565C0', null, {w:'1.5'});
+  // 4개 수직 드롭 (아래로만 화살표)
+  [U, P, O, PY].forEach(s => {
+    line(s.cx, fanY, s.cx, s.t, '#1565C0', 'bl');
+  });
+  lbl(trunkX+50, fanY-7, 'HTTP / JSON', '#1565C0');
+
+  // ═══ 3. gRPC: PAYMENTFC → USERFC (수직+수평+수직, 서비스 카드 사이 간격 이용) ═══
+  const gapR = (O.r + PY.l) / 2;   // ORDERFC-PAYMENTFC 사이
+  const gapL = (U.r + P.l) / 2;    // USERFC-PRODUCTFC 사이
+  const grpcY = 145;                 // fan 레일(175)보다 30px 위
+  path(`M${PY.l},${PY.cy-15} L${gapR},${PY.cy-15} L${gapR},${grpcY} L${gapL},${grpcY} L${gapL},${U.cy-15} L${U.r},${U.cy-15}`,
+    '#7B1FA2','pu',{d:true});
+  lbl((gapR+gapL)/2, grpcY-7, 'gRPC', '#7B1FA2');
+
+  // ═══ 4. Services → Kafka (채널 분리) ═══
+  const ch1 = U.b + 30;
+  const ch2 = U.b + 55;
+  const ch3 = U.b + 80;
+
+  // PRODUCT → Kafka (ch1: drop → right → drop)
+  path(`M${P.cx},${P.b} L${P.cx},${ch1} L${KF.cx-30},${ch1} L${KF.cx-30},${KF.t}`,
+    '#1A237E','or',{ms:'or'});
+  lbl((P.cx+KF.cx-30)/2, ch1-7, 'Pub/Sub', '#1A237E');
+
+  // ORDER → Kafka (ch2: drop → left → drop)
+  path(`M${O.cx},${O.b} L${O.cx},${ch2} L${KF.cx},${ch2} L${KF.cx},${KF.t}`,
+    '#1A237E','or',{ms:'or'});
+
+  // PAYMENT → Kafka (ch3: exit left → drop → left → drop)
+  path(`M${PY.l},${PY.cy+25} L${PY.l-15},${PY.cy+25} L${PY.l-15},${ch3} L${KF.cx+30},${ch3} L${KF.cx+30},${KF.t}`,
+    '#1A237E','or',{ms:'or'});
+
+  // ═══ 5. PAYMENT → Xendit (straight down) ═══
+  line(XN.cx, PY.b, XN.cx, XN.t, '#C62828', 'rd', {ms:'rd'});
+  lbl(XN.cx+4, (PY.b+XN.t)/2, 'HTTPS', '#C62828');
+
+  // ═══ 6. All Services → Redis (straight down) ═══
+  line(RD.cx, U.b, RD.cx, RD.t, '#2E7D32', 'gn');
+  lbl(RD.cx+4, (U.b+RD.t)/2, 'TCP', '#2E7D32');
+
+  // ═══ 7. PAYMENT → MongoDB (straight down) ═══
+  line(MG.cx, PY.b, MG.cx, MG.t, '#2E7D32', 'gn');
+  lbl(MG.cx+4, (PY.b+MG.t)/2, 'TCP', '#2E7D32');
+
+  // ═══ 8. USER → Vault ═══
+  const wallX = 6;
+  path(`M${U.l},${U.cy+30} L${wallX},${U.cy+30} L${wallX},${VL.cy} L${VL.l},${VL.cy}`,
+    '#7B1FA2','pu',{d:true,w:'1.5'});
+  lbl(wallX+30, (U.cy+30+VL.cy)/2, 'HTTP API', '#7B1FA2');
+
+  // ═══ 9. Observability 브릿지 (PAYMENTFC 오른쪽 → Prometheus/Jaeger/Loki 왼쪽) ═══
+  const bx1 = PY.r + 8;
+  const bx2 = PR.l;
+  line(bx1, PR.cy, bx2, PR.cy, '#F57F17', 'yw', {d:true});
+  lbl((bx1+bx2)/2, PR.cy-8, '/metrics', '#F57F17');
+
+  line(bx1, JG.cy, bx2, JG.cy, '#00838F', 'cy', {d:true});
+  lbl((bx1+bx2)/2, JG.cy-8, 'OTLP', '#00838F');
+
+  line(bx1, LK.cy, bx2, LK.cy, '#FF8F00', 'am', {d:true});
+  lbl((bx1+bx2)/2, LK.cy-8, 'logs', '#FF8F00');
+
+  // ═══ 10. node_exporter → Prometheus ═══
+  line(NE.l, NE.cy, PR.r, PR.cy, '#F57F17', null, {w:'1.5'});
+
+  // ═══ 11. Prometheus / Jaeger / Loki → Grafana (Manhattan: 수평→수직→수평) ═══
+  // Prometheus → Grafana
+  path(`M${PR.r},${PR.cy} L${PR.r+15},${PR.cy} L${PR.r+15},${GR.cy-25} L${GR.l},${GR.cy-25}`,
+    '#F57F17','yw',{w:'1.5'});
+  // Jaeger → Grafana (거의 수평)
+  line(JG.r, JG.cy, GR.l, GR.cy, '#00838F', 'cy', {w:'1.5'});
+  // Loki → Grafana
+  path(`M${LK.r},${LK.cy} L${LK.r+15},${LK.cy} L${LK.r+15},${GR.cy+25} L${GR.l},${GR.cy+25}`,
+    '#FF8F00','am',{w:'1.5'});
+});
+</script>
+</body>
+</html>

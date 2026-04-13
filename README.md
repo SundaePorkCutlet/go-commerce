@@ -10,6 +10,8 @@ A distributed system that handles user management, product catalog, order proces
 
 The system follows **Microservices Architecture** with **Database per Service**. Each bounded context owns its data and exposes capabilities via REST APIs, gRPC, and domain events.
 
+**Detailed diagrams (layers, observability, Xendit):** [docs/architecture.md](docs/architecture.md)
+
 ```mermaid
 flowchart TB
     subgraph Clients["Clients"]
@@ -461,7 +463,7 @@ Within each service:
 
 이 레포의 **docker-compose**는 학습·포트폴리오용으로 **단일 PostgreSQL / 단일 Redis**에 가깝습니다. 아래는 **실제 운영**에서 자주 묻는 개념을 README에만 요약해 둔 것입니다. (상세 구현은 이 저장소 범위 밖입니다.)
 
-### 복구 목표 (면접·설계에서 자주 나옴)
+### 복구 목표
 
 | 용어 | 의미 |
 |------|------|
@@ -497,7 +499,7 @@ Within each service:
 ### 이 프로젝트와의 관계
 
 - 로컬 스택은 **운영급 백업·HA·암호화·정책**을 포함하지 않습니다.
-- 면접에서는 **“패턴은 코드로 익혔고, 프로덕션에서는 RPO/RTO에 맞춰 RDS·ElastiCache 등에서 복제·백업·모니터링을 설계한다”**처럼 구분해서 말하면 됩니다.
+- 프로덕션에서는 RPO/RTO에 맞춰 RDS·ElastiCache 등에서 복제·백업·모니터링을 설계합니다.
 
 ---
 

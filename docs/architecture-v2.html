@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1680">
+<title>Go Commerce — System Architecture (v2)</title>
+<style>
+  :root {
+    --mainW: 1048px;
+    --obsLeft: 1068px;
+    --r: 8px;
+    --shadow: 0 1px 3px rgba(0,0,0,.1), 0 4px 12px rgba(0,0,0,.06);
+    --border: #E0E4EC;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Segoe UI',system-ui,-apple-system,sans-serif; background:#ECEFF4; color:#1a2332; padding:20px 24px 120px; }
+  h1 {
+    width:1720px;
+    margin:0 auto;
+    text-align:center;
+    font-size:22px;
+    font-weight:800;
+    letter-spacing:-0.02em;
+  }
+  .sub {
+    width:1720px;
+    margin:4px auto 14px;
+    text-align:center;
+    font-size:12px;
+    color:#5c6b7a;
+  }
+  .ver {
+    width:1720px;
+    margin:0 auto 10px;
+    text-align:left;
+    font-size:11px;
+    color:#78909C;
+    padding-left:6px;
+  }
+
+  #canvas {
+    position:relative;
+    width:1720px;
+    min-width:1720px;
+    max-width:1720px;
+    height:1180px;
+    margin:0 auto;
+    background:#fff;
+    border:1px solid var(--border);
+    border-radius:12px;
+    box-shadow: var(--shadow);
+    overflow:visible;
+  }
+
+  /* CSMS-style layer panel — 레이어별 배경 (Obs와 동일하게 틴트) */
+  .panel {
+    position:absolute;
+    left:0;
+    width: var(--mainW);
+    border-radius: var(--r);
+    border:1px solid var(--border);
+    overflow: visible;
+  }
+  /* 왼쪽 단일 영역: Edge + App + Infra */
+  .panel-services {
+    background: linear-gradient(180deg, #E0F7F4 0%, #E3F2FD 38%, #E8EAF6 78%, #ECEFF1 100%);
+  }
+  .svc-body {
+    position:absolute;
+    left:0;
+    right:0;
+    top:26px;
+    bottom:0;
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+    padding:10px 12px 12px;
+    box-sizing:border-box;
+  }
+  .svc-edge { flex:0 0 auto; }
+  .svc-app {
+    flex:1 1 auto;
+    min-height:0;
+    display:flex;
+    flex-direction:column;
+  }
+  .svc-infra { flex:0 0 auto; }
+  .panel-services .stage {
+    position:relative !important;
+    top:auto !important;
+    bottom:auto !important;
+    left:0;
+    right:0;
+  }
+  .svc-app .wrap-app { flex:1; min-height:0; display:flex; flex-direction:column; }
+  /* Horizontal layer title — 거의 투명 배경 (아래로 지나가는 선이 비침) */
+  .layer-caption {
+    position:absolute;
+    left:0;
+    right:0;
+    top:0;
+    height:26px;
+    display:flex;
+    align-items:center;
+    padding:0 12px;
+    font-size:10px;
+    font-weight:800;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    border-radius: var(--r) var(--r) 0 0;
+    z-index:7;
+    gap:8px;
+    border-bottom:1px solid rgba(0,0,0,.1);
+    backdrop-filter: blur(2px);
+  }
+  .layer-caption::before {
+    content:'';
+    width:6px;
+    height:6px;
+    border-radius:50%;
+    flex-shrink:0;
+  }
+  .cap-svc   { background: linear-gradient(90deg, rgba(13,71,161,.36), rgba(40,53,147,.4)); color:#0A1E3D; border-bottom-color: rgba(13,71,161,.2); }
+  .cap-svc::before { background:#1565C0; }
+  .cap-blue   { background: linear-gradient(90deg, rgba(13,71,161,.38), rgba(21,101,192,.42)); color:#0A2A5C; border-bottom-color: rgba(13,71,161,.22); }
+  .cap-blue::before   { background:#0D47A1; }
+  .cap-obs    { background: linear-gradient(90deg, rgba(245,127,23,.4), rgba(251,140,0,.44)); color:#BF360C; border-bottom-color: rgba(230,81,0,.22); }
+  .cap-obs::before    { background:#E65100; }
+
+  .stage { position:absolute; left:0; right:0; top:26px; bottom:0; }
+  .stage:has(.stage-app-grid),
+  .stage.wrap-app {
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:stretch;
+    min-height:0;
+  }
+  .stage:has(.infra-rows) {
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+  }
+
+  .stage.wrap-edge {
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .wrap-edge .stage-flow.stage-edge {
+    height:auto;
+    flex:0 0 auto;
+  }
+
+  .stage-flow { display:flex; align-items:flex-start; width:100%; }
+  /* Edge: 좌·우 동일 여백으로 카드 묶음 정확히 가운데 */
+  .stage-flow.stage-edge {
+    flex-direction:row;
+    flex-wrap:nowrap;
+    align-items:center;
+    justify-content:center;
+    box-sizing:border-box;
+    gap:56px;
+    padding:10px 20px;
+    width:100%;
+  }
+  .stage-flow.stage-edge::before,
+  .stage-flow.stage-edge::after {
+    content:'';
+    flex:1 1 0;
+    min-width:0;
+    pointer-events:none;
+  }
+  .stage-edge {
+    flex-wrap:nowrap;
+  }
+  /* 4열 그리드 — USER | PRODUCT | ORDER | PAYMENT 와 열 정렬 */
+  .stage-app-grid {
+    display:grid;
+    grid-template-columns:repeat(4, minmax(0, 1fr));
+    gap:12px;
+    padding:12px 18px;
+    align-items:stretch;
+    align-content:center;
+    flex:0 1 auto;
+    max-height:100%;
+    width:100%;
+    box-sizing:border-box;
+  }
+  .wrap-app > .stage-app-grid {
+    min-height:0;
+  }
+  .stage-app-grid .n.app {
+    position:relative !important;
+    left:auto !important;
+    top:auto !important;
+    width:100% !important;
+    min-width:0;
+  }
+
+  .infra-rows {
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    padding:18px 18px 14px;
+    width:100%;
+    box-sizing:border-box;
+    flex:0 0 auto;
+    justify-content:center;
+  }
+  /* 인프라 상단 4카드 — 가로 너비 동일 (4등분) */
+  .infra-row1 {
+    display:grid;
+    grid-template-columns:repeat(4, minmax(0, 1fr));
+    gap:10px;
+    align-items:start;
+  }
+  .infra-row1 #redis,
+  .infra-row1 #kafka,
+  .infra-row1 #mongodb,
+  .infra-row1 #xendit {
+    grid-column:auto;
+    justify-self:stretch;
+    width:100%;
+    max-width:none;
+    position:relative !important;
+    left:auto !important;
+    top:auto !important;
+    min-width:0;
+  }
+  .infra-row2 {
+    display:grid;
+    grid-template-columns:repeat(4, minmax(0, 1fr));
+    padding-top:2px;
+  }
+  .infra-row2 .n.plat {
+    grid-column:1;
+    justify-self:stretch;
+    position:relative !important;
+    left:auto !important;
+    top:auto !important;
+    width:100% !important;
+    max-width:220px;
+  }
+
+  .stage-flow .n.edge {
+    position:relative !important;
+    left:auto !important;
+    top:auto !important;
+  }
+
+  /* Cards */
+  .n {
+    position:absolute;
+    border:1px solid var(--border);
+    border-radius: var(--r);
+    background:#fff;
+    box-shadow: 0 1px 2px rgba(0,0,0,.06);
+    overflow:hidden;
+    z-index:4;
+  }
+  .n-h {
+    padding:6px 8px;
+    font-weight:700;
+    font-size:12px;
+    color:#fff;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:6px;
+    letter-spacing:.02em;
+  }
+  .n-h img { width:17px; height:17px; flex-shrink:0; }
+  .n-b { padding:6px 7px; font-size:10px; line-height:1.4; }
+  .row {
+    display:flex;
+    align-items:center;
+    gap:5px;
+    padding:3px 5px;
+    border-radius:4px;
+    margin-bottom:3px;
+    font-weight:600;
+    font-size:9.5px;
+  }
+  .row img { width:13px; height:13px; flex-shrink:0; }
+  .row span { flex:1; min-width:0; }
+  .port { display:inline-block; padding:1px 5px; border-radius:3px; font-size:8px; font-weight:700; color:#fff; background:#455A64; margin:1px; }
+
+  .n.edge .n-h { background: linear-gradient(90deg, #00796B, #00897B); }
+  .n.app .n-h   { background: linear-gradient(90deg, #0D47A1, #1565C0); }
+  .n.infra .n-h{ background: linear-gradient(90deg, #1A237E, #283593); }
+  .n.ext .n-h   { background: linear-gradient(90deg, #B71C1C, #C62828); }
+  .n.data .n-h { background: linear-gradient(90deg, #1B5E20, #2E7D32); }
+  .n.plat .n-h  { background: linear-gradient(90deg, #6A1B9A, #7B1FA2); }
+  .n.obs .n-h   { background: linear-gradient(90deg, #F57F17, #FB8C00); }
+
+  .c-go { background:#E3F2FD; color:#0D47A1; }
+  .c-fw { background:#E8F5E9; color:#1B5E20; }
+  .c-db { background:#F1F8E9; color:#33691E; }
+  .c-ca { background:#FBE9E7; color:#BF360C; }
+  .c-ms { background:#E8EAF6; color:#1A237E; }
+  .c-ob { background:#FFFDE7; color:#F57F17; }
+  .c-sc { background:#F3E5F5; color:#4A148C; }
+  .c-ex { background:#FCE4EC; color:#880E4F; }
+
+  .n.app .n-b { min-height:0; }
+
+  /* Observability column panel */
+  .panel-obs {
+    position:absolute;
+    left:var(--obsLeft);
+    top:0;
+    width:560px;
+    height:940px;
+    border-radius: var(--r);
+    border:1px solid var(--border);
+    background: linear-gradient(180deg, #fffef5 0%, #fff8e1 100%);
+    overflow: visible;
+  }
+  .stage-obs { position:absolute; left:0; right:0; top:26px; bottom:0; padding-left:6px; box-sizing:border-box; }
+
+  #lines { position:absolute; top:0; left:0; width:100%; height:100%; z-index:6; pointer-events:none; }
+
+  .doc {
+    position:absolute;
+    left:0;
+    bottom:0;
+    width: var(--mainW);
+    height: 176px;
+    border-radius: var(--r);
+    border:1px solid var(--border);
+    background:#fff;
+    padding:10px 14px 10px 14px;
+    font-size:10px;
+    color:#455A64;
+    line-height:1.5;
+  }
+  .doc h3 { font-size:11px; color:#263238; margin-bottom:4px; letter-spacing:.02em; }
+  .doc table { width:100%; border-collapse:collapse; }
+  .doc th, .doc td { border:1px solid #ECEFF1; padding:3px 7px; text-align:left; }
+  .doc th { background:#ECEFF1; font-weight:700; font-size:9px; color:#37474F; }
+
+  .legend {
+    display:flex; gap:12px; flex-wrap:wrap; align-items:center;
+    width:1720px;
+    min-width:1720px;
+    max-width:1720px;
+    margin:8px auto 44px; padding:7px 12px;
+    position: relative; top:-8px;
+    background:#fff; border:1px solid var(--border); border-radius: var(--r);
+    font-size:10px;
+  }
+  .li { display:flex; align-items:center; gap:4px; }
+  .sw { width:11px; height:11px; border-radius:3px; border:1px solid #B0BEC5; }
+  .proto { display:inline-block; padding:2px 5px; border-radius:3px; font-size:8px; font-weight:700; color:#fff; }
+</style>
+</head>
+<body>
+<h1>Go Commerce — System Architecture</h1>
+<p class="sub">Event-driven e-commerce · Go microservices · DB per Service · Kafka · Full observability</p>
+<p class="ver">Author: Hong Junho</p>
+
+<div id="canvas">
+  <!-- SERVICE LAYER: Edge + Application + Infrastructure (단일 캡션) -->
+  <div class="panel panel-services" style="top:12px;height:940px;">
+    <div class="layer-caption cap-svc">Service Layer</div>
+    <div class="svc-body">
+      <div class="svc-edge">
+        <div class="stage wrap-edge">
+          <div class="stage-flow stage-edge">
+            <div id="browser" class="n edge" style="width:170px">
+              <div class="n-h"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/react/react-original.svg" alt="">Browser / SPA</div>
+              <div class="n-b">
+                <div class="row c-fw"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/react/react-original.svg" alt=""><span>React · Vite</span></div>
+              </div>
+            </div>
+            <div id="frontend" class="n edge" style="width:180px">
+              <div class="n-h"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/nginx/nginx-original.svg" alt="">Frontend · Nginx</div>
+              <div class="n-b">
+                <div class="row c-fw"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/nginx/nginx-original.svg" alt=""><span>Reverse proxy · Static</span></div>
+                <span class="port">:3001</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="svc-app">
+        <div class="stage wrap-app">
+        <div class="stage-app-grid">
+      <div id="userfc" class="n app">
+        <div class="n-h"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/go/go-original.svg" alt="">USER</div>
+        <div class="n-b">
+          <div class="row c-go"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/go/go-original.svg" alt=""><span>Go 1.22+</span></div>
+          <div class="row c-fw"><span>Gin · GORM</span></div>
+          <div class="row c-db"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/postgresql/postgresql-original.svg" alt=""><span>PostgreSQL (user)</span></div>
+          <div class="row c-ca"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/redis/redis-original.svg" alt=""><span>Redis — rate limit · JWT</span></div>
+          <div class="row c-sc"><span>Vault — secrets</span></div>
+          <div class="row c-ob"><span>Prometheus RED · OTLP</span></div>
+          <div style="margin-top:4px"><span class="port">REST :28080</span> <span class="port">gRPC :50051</span></div>
+        </div>
+      </div>
+      <div id="productfc" class="n app">
+        <div class="n-h"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/go/go-original.svg" alt="">PRODUCT</div>
+        <div class="n-b">
+          <div class="row c-go"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/go/go-original.svg" alt=""><span>Go 1.22+</span></div>
+          <div class="row c-fw"><span>Gin · GORM</span></div>
+          <div class="row c-db"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/postgresql/postgresql-original.svg" alt=""><span>PostgreSQL (product)</span></div>
+          <div class="row c-ca"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/redis/redis-original.svg" alt=""><span>Redis — cache · ranking</span></div>
+          <div class="row c-ms"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/apachekafka/apachekafka-original.svg" alt=""><span>Kafka consumer (stock)</span></div>
+          <div class="row c-ob"><span>Prometheus RED · OTLP</span></div>
+          <div style="margin-top:4px"><span class="port">REST :28081</span></div>
+        </div>
+      </div>
+      <div id="orderfc" class="n app">
+        <div class="n-h"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/go/go-original.svg" alt="">ORDER</div>
+        <div class="n-b">
+          <div class="row c-go"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/go/go-original.svg" alt=""><span>Go 1.22+</span></div>
+          <div class="row c-fw"><span>Gin · GORM</span></div>
+          <div class="row c-db"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/postgresql/postgresql-original.svg" alt=""><span>PostgreSQL (order)</span></div>
+          <div class="row c-ca"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/redis/redis-original.svg" alt=""><span>Redis — session</span></div>
+          <div class="row c-ms"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/apachekafka/apachekafka-original.svg" alt=""><span>Kafka pub/sub (order · stock)</span></div>
+          <div class="row c-ob"><span>Prometheus RED · OTLP</span></div>
+          <div style="margin-top:4px"><span class="port">REST :28082</span></div>
+        </div>
+      </div>
+      <div id="paymentfc" class="n app">
+        <div class="n-h"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/go/go-original.svg" alt="">PAYMENT</div>
+        <div class="n-b">
+          <div class="row c-go"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/go/go-original.svg" alt=""><span>Go 1.22+</span></div>
+          <div class="row c-fw"><span>Gin · GORM</span></div>
+          <div class="row c-db"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/postgresql/postgresql-original.svg" alt=""><span>PostgreSQL (payment)</span></div>
+          <div class="row c-db"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/mongodb/mongodb-original.svg" alt=""><span>MongoDB (audit)</span></div>
+          <div class="row c-ca"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/redis/redis-original.svg" alt=""><span>Redis</span></div>
+          <div class="row c-ms"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/apachekafka/apachekafka-original.svg" alt=""><span>Kafka pub/sub (payment)</span></div>
+          <div class="row c-ex"><span>Xendit — Invoice · Webhook</span></div>
+          <div class="row c-ob"><span>Prometheus RED + biz · OTLP</span></div>
+          <div style="margin-top:4px"><span class="port">REST :28083</span></div>
+        </div>
+      </div>
+    </div>
+        </div>
+      </div>
+      <div class="svc-infra">
+        <div class="stage">
+      <div class="infra-rows">
+        <div class="infra-row1">
+          <div id="redis" class="n data">
+            <div class="n-h"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/redis/redis-original.svg" alt="">Redis</div>
+            <div class="n-b">
+              <div class="row c-ca"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/redis/redis-original.svg" alt=""><span>Cache · Rate limit · JWT</span></div>
+              <span class="port">:6379</span>
+            </div>
+          </div>
+          <div id="kafka" class="n infra">
+            <div class="n-h"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/apachekafka/apachekafka-original.svg" alt="">Apache Kafka</div>
+            <div class="n-b">
+              <div class="row c-ms"><span>CP-Kafka 7.6 + Zookeeper</span></div>
+              <div class="row c-ms"><span>Topics: order · stock · payment</span></div>
+              <span class="port">:29092</span>
+            </div>
+          </div>
+          <div id="mongodb" class="n data">
+            <div class="n-h"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/mongodb/mongodb-original.svg" alt="">MongoDB</div>
+            <div class="n-b">
+              <div class="row c-db"><span>Audit Log</span></div>
+              <span class="port">:27017</span>
+            </div>
+          </div>
+          <div id="xendit" class="n ext">
+            <div class="n-h">💳 Xendit</div>
+            <div class="n-b">
+              <div class="row c-ex"><span>Invoice API (HTTPS)</span></div>
+              <div class="row c-ex"><span>Webhook callback</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="infra-row2">
+          <div id="vault" class="n plat">
+            <div class="n-h">🔐 HashiCorp Vault</div>
+            <div class="n-b">
+              <div class="row c-sc"><span>Dev mode · Secrets</span></div>
+              <span class="port">:8200</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OBSERVABILITY (오른쪽 단일 영역) -->
+  <div class="panel-obs" style="top:12px;height:940px;">
+    <div class="layer-caption cap-obs">Observability</div>
+    <div class="stage-obs">
+      <div id="prometheus" class="n obs" style="left:56px;top:24px;width:170px">
+        <div class="n-h"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/prometheus/prometheus-original.svg" alt="">Prometheus</div>
+        <div class="n-b">
+          <div class="row c-ob"><span>v2.52 · scrape 4 services</span></div>
+          <div class="row c-ob"><span>Alerting rules</span></div>
+          <span class="port">:9090</span>
+        </div>
+      </div>
+      <div id="nodeexp" class="n obs" style="left:261px;top:24px;width:110px">
+        <div class="n-h" style="font-size:8px">📈 node_exporter</div>
+        <div class="n-b"><span class="port">:9100</span></div>
+      </div>
+      <div id="jaeger" class="n obs" style="left:56px;top:200px;width:170px">
+        <div class="n-h"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/jaegertracing/jaegertracing-original.svg" alt="">Jaeger</div>
+        <div class="n-b">
+          <div class="row c-ob"><span>Distributed tracing</span></div>
+          <span class="port">OTLP :4317</span> <span class="port">UI :16686</span>
+        </div>
+      </div>
+      <div id="loki" class="n obs" style="left:56px;top:380px;width:170px">
+        <div class="n-h"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/grafana/grafana-original.svg" alt="">Loki + Promtail</div>
+        <div class="n-b">
+          <div class="row c-ob"><span>Loki 2.9.4 · Promtail ×4</span></div>
+          <span class="port">:3100</span>
+        </div>
+      </div>
+      <div id="grafana" class="n obs" style="left:296px;top:210px;width:200px">
+        <div class="n-h" style="font-size:10px"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/grafana/grafana-original.svg" alt="">Grafana</div>
+        <div class="n-b">
+          <div class="row c-ob"><span>11.2 · Provisioned dashboards</span></div>
+          <div class="row c-ob"><span>RED · Webhook panels</span></div>
+          <span class="port">:3002</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="doc">
+    <h3>Stack & protocols (summary)</h3>
+    <table>
+      <tr><th>Layer</th><th>Runtime / stack</th><th>Protocols</th></tr>
+      <tr><td>Edge</td><td>React · Vite · Nginx</td><td>HTTP / HTTPS</td></tr>
+      <tr><td>Application</td><td>Go · Gin · GORM · PostgreSQL (per service)</td><td>HTTP/JSON · gRPC</td></tr>
+      <tr><td>Messaging</td><td>Kafka (CP 7.6)</td><td>Pub/Sub (Kafka protocol)</td></tr>
+      <tr><td>Data</td><td>Redis · MongoDB</td><td>TCP</td></tr>
+      <tr><td>Observability</td><td>Prometheus · Jaeger · Loki · Grafana</td><td>/metrics · OTLP · logs</td></tr>
+    </table>
+  </div>
+
+  <svg id="lines" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="a-bl" viewBox="0 0 10 6" refX="9" refY="3" markerWidth="7" markerHeight="5" orient="auto"><path d="M0,0L10,3L0,6z" fill="#1565C0"/></marker>
+      <marker id="a-pu" viewBox="0 0 10 6" refX="9" refY="3" markerWidth="7" markerHeight="5" orient="auto"><path d="M0,0L10,3L0,6z" fill="#7B1FA2"/></marker>
+      <marker id="a-or" viewBox="0 0 10 6" refX="9" refY="3" markerWidth="7" markerHeight="5" orient="auto"><path d="M0,0L10,3L0,6z" fill="#1A237E"/></marker>
+      <marker id="a-rd" viewBox="0 0 10 6" refX="9" refY="3" markerWidth="7" markerHeight="5" orient="auto"><path d="M0,0L10,3L0,6z" fill="#C62828"/></marker>
+      <marker id="a-gn" viewBox="0 0 10 6" refX="9" refY="3" markerWidth="7" markerHeight="5" orient="auto"><path d="M0,0L10,3L0,6z" fill="#2E7D32"/></marker>
+      <marker id="a-yw" viewBox="0 0 10 6" refX="9" refY="3" markerWidth="7" markerHeight="5" orient="auto"><path d="M0,0L10,3L0,6z" fill="#F57F17"/></marker>
+      <marker id="a-cy" viewBox="0 0 10 6" refX="9" refY="3" markerWidth="7" markerHeight="5" orient="auto"><path d="M0,0L10,3L0,6z" fill="#00838F"/></marker>
+      <marker id="a-am" viewBox="0 0 10 6" refX="9" refY="3" markerWidth="7" markerHeight="5" orient="auto"><path d="M0,0L10,3L0,6z" fill="#FF8F00"/></marker>
+      <marker id="ar-bl" viewBox="0 0 10 6" refX="1" refY="3" markerWidth="7" markerHeight="5" orient="auto"><path d="M10,0L0,3L10,6z" fill="#1565C0"/></marker>
+      <marker id="ar-or" viewBox="0 0 10 6" refX="1" refY="3" markerWidth="7" markerHeight="5" orient="auto"><path d="M10,0L0,3L10,6z" fill="#1A237E"/></marker>
+      <marker id="ar-rd" viewBox="0 0 10 6" refX="1" refY="3" markerWidth="7" markerHeight="5" orient="auto"><path d="M10,0L0,3L10,6z" fill="#C62828"/></marker>
+    </defs>
+  </svg>
+</div>
+
+<div class="legend">
+  <b>Legend</b>
+  <div class="li"><div class="sw" style="background:#E0F2F1;border-color:#00897B"></div>Edge</div>
+  <div class="li"><div class="sw" style="background:#E3F2FD;border-color:#1565C0"></div>Application</div>
+  <div class="li"><div class="sw" style="background:#E8EAF6;border-color:#1A237E"></div>Infra</div>
+  <div class="li"><div class="sw" style="background:#FCE4EC;border-color:#C62828"></div>External</div>
+  <div class="li"><div class="sw" style="background:#E8F5E9;border-color:#2E7D32"></div>Data</div>
+  <div class="li"><div class="sw" style="background:#F3E5F5;border-color:#7B1FA2"></div>Platform</div>
+  <div class="li"><div class="sw" style="background:#FFF8E1;border-color:#F9A825"></div>Observability</div>
+  <span style="color:#B0BEC5">│</span>
+  <div class="li"><span class="proto" style="background:#1565C0">HTTP/JSON</span></div>
+  <div class="li"><span class="proto" style="background:#7B1FA2">gRPC</span></div>
+  <div class="li"><span class="proto" style="background:#1A237E">Pub/Sub</span></div>
+  <div class="li"><span class="proto" style="background:#C62828">HTTPS</span></div>
+  <div class="li"><span class="proto" style="background:#F57F17">/metrics</span></div>
+  <div class="li"><span class="proto" style="background:#00838F">OTLP</span></div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const NS = 'http://www.w3.org/2000/svg';
+  const svg = document.getElementById('lines');
+  const cr = document.getElementById('canvas').getBoundingClientRect();
+
+  function g(id) {
+    const r = document.getElementById(id).getBoundingClientRect();
+    return { x: r.left - cr.left, y: r.top - cr.top, w: r.width, h: r.height,
+             cx: r.left - cr.left + r.width/2, cy: r.top - cr.top + r.height/2,
+             t: r.top - cr.top, b: r.top - cr.top + r.height,
+             l: r.left - cr.left, r: r.left - cr.left + r.width };
+  }
+
+  function line(x1,y1,x2,y2,c,m,o) {
+    o=o||{};
+    const e=document.createElementNS(NS,'line');
+    e.setAttribute('x1',x1);e.setAttribute('y1',y1);e.setAttribute('x2',x2);e.setAttribute('y2',y2);
+    e.setAttribute('stroke',c);e.setAttribute('stroke-width',o.w||'2');
+    if(o.d) e.setAttribute('stroke-dasharray','6,3');
+    if(m) e.setAttribute('marker-end','url(#a-'+m+')');
+    if(o.ms) e.setAttribute('marker-start','url(#ar-'+o.ms+')');
+    svg.appendChild(e);
+  }
+
+  function path(d,c,m,o) {
+    o=o||{};
+    const e=document.createElementNS(NS,'path');
+    e.setAttribute('d',d);e.setAttribute('stroke',c);e.setAttribute('stroke-width',o.w||'2');
+    e.setAttribute('fill','none');
+    if(o.d) e.setAttribute('stroke-dasharray','6,3');
+    if(m) e.setAttribute('marker-end','url(#a-'+m+')');
+    if(o.ms) e.setAttribute('marker-start','url(#ar-'+o.ms+')');
+    svg.appendChild(e);
+  }
+
+  function lbl(x,y,t,c) {
+    const tw=t.length*6.5+10, th=16;
+    const r=document.createElementNS(NS,'rect');
+    r.setAttribute('x',x-tw/2);r.setAttribute('y',y-12);r.setAttribute('width',tw);r.setAttribute('height',th);
+    r.setAttribute('fill','#ffffffee');
+    r.setAttribute('rx','3');r.setAttribute('stroke',c);r.setAttribute('stroke-width','.5');
+    svg.appendChild(r);
+    const tx=document.createElementNS(NS,'text');
+    tx.setAttribute('x',x);tx.setAttribute('y',y);tx.setAttribute('text-anchor','middle');
+    tx.setAttribute('fill',c);tx.setAttribute('font-size','10');tx.setAttribute('font-weight','700');
+    tx.setAttribute('font-family','system-ui,sans-serif');
+    tx.textContent=t;
+    svg.appendChild(tx);
+  }
+
+  const B=g('browser'), F=g('frontend');
+  const U=g('userfc'), P=g('productfc'), O=g('orderfc'), PY=g('paymentfc');
+  const KF=g('kafka'), RD=g('redis'), MG=g('mongodb'), XN=g('xendit'), VL=g('vault');
+  const PR=g('prometheus'), JG=g('jaeger'), LK=g('loki'), GR=g('grafana'), NE=g('nodeexp');
+
+  const trunkX = F.cx;
+  const trunkY = F.b;
+  const appTop = Math.min(U.t, P.t, O.t, PY.t);
+  const fanY = appTop - 52;
+  const gapR = (O.r + PY.l) / 2;
+  const gapL = (U.r + P.l) / 2;
+  /* gRPC 전체를 HTTP/JSON 수평 레일(fanY) 위 한 밴드에만 두어 파란선과 겹침 최소화 */
+  const grpcY = fanY - 24;
+
+  /* 나중에 그린 요소가 위에 옴 → HTTP(파란) fan은 마지막 */
+
+  const uTop = U.t - 5;
+  const pyTop = PY.t - 5;
+  path(`M${U.r},${uTop} L${gapL},${uTop} L${gapL},${grpcY} L${gapR},${grpcY} L${gapR},${pyTop} L${PY.l},${pyTop}`,
+    '#7B1FA2','pu',{d:true});
+  const httpJsonLblY = fanY;
+  const httpJsonLblX = (U.cx + PY.cx) / 2;
+  const grpcLblY = grpcY;
+  const grpcLblX = (gapL + gapR) / 2;
+  lbl(grpcLblX, grpcLblY, 'gRPC', '#7B1FA2');
+
+  {
+    /* Kafka Pub/Sub: 각 서비스 카드 하단 → 공통 높이에서 수평 → Kafka 상단 (지그재그 제거) */
+    const appBottom = Math.max(P.b, O.b, PY.b);
+    const mergeY = Math.min(KF.t - 14, Math.max(appBottom + 12, KF.t - 36));
+    const prodX = KF.l + 36;
+    const ordX = KF.cx;
+    const payX = KF.r - 36;
+    path(`M${P.cx},${P.b} L${P.cx},${mergeY} L${prodX},${mergeY} L${prodX},${KF.t}`,
+      '#1A237E', 'or', { ms: 'or' });
+    path(`M${O.cx},${O.b} L${O.cx},${mergeY} L${ordX},${mergeY} L${ordX},${KF.t}`,
+      '#1A237E', 'or', { ms: 'or' });
+    path(`M${PY.cx},${PY.b} L${PY.cx},${mergeY} L${payX},${mergeY} L${payX},${KF.t}`,
+      '#1A237E', 'or', { ms: 'or' });
+    lbl(KF.cx, mergeY, 'Pub/Sub', '#1A237E');
+  }
+
+  const xnX = XN.cx + 18;
+  line(xnX, PY.b, xnX, XN.t, '#C62828', 'rd', {ms:'rd'});
+  lbl(xnX, (PY.b+XN.t)/2, 'HTTPS', '#C62828');
+
+  const rdX = RD.cx - 12;
+  line(rdX, U.b, rdX, RD.t, '#2E7D32', 'gn');
+  {
+    const ty = U.b + (RD.t - U.b) * 0.33;
+    lbl(rdX, ty, 'TCP', '#2E7D32');
+  }
+
+  const mgX = MG.cx - 18;
+  line(mgX, PY.b, mgX, MG.t, '#2E7D32', 'gn');
+  {
+    const ty = PY.b + (MG.t - PY.b) * 0.33;
+    lbl(mgX, ty, 'TCP', '#2E7D32');
+  }
+
+  const wallX = 8;
+  path(`M${U.l},${U.cy+26} L${wallX},${U.cy+26} L${wallX},${VL.cy} L${VL.l},${VL.cy}`,
+    '#7B1FA2','pu',{d:true,w:'1.5'});
+  {
+    const httpApiY = (U.cy + 26 + VL.cy) / 2;
+    lbl(wallX + 18, httpApiY, 'HTTP API', '#7B1FA2');
+  }
+
+  const bx1 = PY.r + 8;
+  const bx2 = PR.l;
+  line(bx1, PR.cy, bx2, PR.cy, '#F57F17', 'yw', {d:true});
+  line(bx1, JG.cy, bx2, JG.cy, '#00838F', 'cy', {d:true});
+  line(bx1, LK.cy, bx2, LK.cy, '#FF8F00', 'am', {d:true});
+  {
+    /* 점선은 Prometheus 왼쪽에서 끊고, 라벨은 서비스 패널 쪽(Obs 카드와 겹치지 않게) */
+    const tw = (t) => t.length * 6.5 + 10;
+    const twMax = Math.max(tw('/metrics'), tw('OTLP'), tw('logs'));
+    const lo = bx1 + twMax / 2 + 4;
+    const hi = PR.l - twMax / 2 - 6;
+    const tagX = lo <= hi ? (lo + hi) / 2 : (bx1 + PR.l) / 2;
+    lbl(tagX, PR.cy, '/metrics', '#F57F17');
+    lbl(tagX, JG.cy, 'OTLP', '#00838F');
+    lbl(tagX, LK.cy, 'logs', '#FF8F00');
+  }
+
+  path(`M${NE.l},${NE.cy} L${PR.r},${NE.cy} L${PR.r},${PR.cy}`, '#F57F17', null, {w:'1.5'});
+  {
+    const grX = GR.l - 22;
+    const row1BusY = Math.max(PR.b, NE.b) + 10;
+    path(`M${PR.r},${PR.cy} L${PR.r},${row1BusY} L${grX},${row1BusY} L${grX},${GR.cy - 22} L${GR.l},${GR.cy - 22}`,
+      '#F57F17', 'yw', { w: '1.5' });
+  }
+  {
+    const grXj = GR.l - 22;
+    path(`M${JG.r},${JG.cy} L${grXj},${JG.cy} L${grXj},${GR.cy} L${GR.l},${GR.cy}`,
+      '#00838F', 'cy', { w: '1.5' });
+  }
+  {
+    const grXl = GR.l - 22;
+    path(`M${LK.r},${LK.cy} L${grXl},${LK.cy} L${grXl},${GR.cy + 22} L${GR.l},${GR.cy + 22}`,
+      '#FF8F00', 'am', { w: '1.5' });
+  }
+
+  const edgeY = Math.round((B.cy + F.cy) / 2);
+  line(B.r, edgeY, F.l, edgeY, '#1565C0', 'bl', {ms:'bl'});
+  lbl((B.r+F.l)/2, edgeY, 'HTTP', '#1565C0');
+
+  line(trunkX, trunkY, trunkX, fanY, '#1565C0', null, {ms:'bl'});
+  line(U.cx, fanY, PY.cx, fanY, '#1565C0', null, {w:'1.5'});
+  {
+    /* 앱 카드 파란 헤더(.n-h)를 관통하지 않도록 본문 상단에서 끊음; fanY가 낮을 때는 아래로만 진행 */
+    const httpIn = (s) => s.t - 4;
+    [U, P, O, PY].forEach((s) => { line(s.cx, fanY, s.cx, httpIn(s), '#1565C0', 'bl'); });
+  }
+  lbl(httpJsonLblX, httpJsonLblY, 'HTTP / JSON', '#1565C0');
+});
+</script>
+</body>
+</html>
