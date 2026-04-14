@@ -1,9 +1,9 @@
 # Go Commerce — 시스템 아키텍처
 
-엔지니어링 문서·포트폴리오에서 쓰는 **레이어드 뷰**를 목표로 했습니다. (외부 레퍼런스처럼 **구간별 색**, **컴포넌트별 스택**, **프로토콜 라벨**, **관측성**을 한 장에 읽히게 구성.)
+구간별 색, 컴포넌트별 스택, 프로토콜 라벨, 관측성을 한 장에 읽히게 구성한 **레이어드 뷰** 아키텍처 문서입니다.
 
 - **HTML 상세 다이어그램**: `docs/architecture.html` · 백업 `architecture-v1.html` · CSMS형 레이아웃 시도 `architecture-v2.html`
-- **다이어그램**: [Mermaid Live](https://mermaid.live)에서 PNG/SVG로 내보내면 슬라이드·이력서 첨부용으로 사용하기 좋습니다.
+- **다이어그램**: [Mermaid Live](https://mermaid.live)에서 PNG/SVG로 내보낼 수 있습니다.
 - **한계**: Mermaid는 아이콘·AWS 심볼 수준의 그래픽은 아니므로, **최종 비주얼은 Live에서 SVG 내보낸 뒤 Figma에 로고·타이틀만 얹는 방식**이 가장 깔끔합니다.
 
 ---
