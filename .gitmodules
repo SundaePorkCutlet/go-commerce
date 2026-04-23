@@ -10,3 +10,6 @@
 [submodule "PAYMENTFC"]
 	path = PAYMENTFC
 	url = https://github.com/SundaePorkCutlet/paymentfc.git
+[submodule "tools/project-qa-assistant"]
+	path = tools/project-qa-assistant
+	url = https://github.com/SundaePorkCutlet/go-commerce-qa-assistant.git
