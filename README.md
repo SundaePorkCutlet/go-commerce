@@ -289,6 +289,10 @@ Loki, Prometheus, Grafana, Promtail, node_exporter를 통해 로그와 메트릭
 - **URL**: http://localhost:3002 (Vite `3000`과 포트 충돌 방지를 위해 분리)
 - **로그인**: `admin` / `admin`
 - **프로비저닝 대시보드**: Prometheus / Loki 데이터소스와 **Go Commerce — HTTP RED** 대시보드가 자동 로드됩니다 (`grafana/provisioning/`, `grafana/dashboards/`)
+
+#### Go Commerce — HTTP RED 대시보드
+
+![Grafana RED Dashboard](docs/screenshots/grafana-red-dashboard.png)
 - **데이터소스 설정**:
   - **Loki**: URL `http://loki:3100` → Save & test
   - **Prometheus**: URL `http://prometheus:9090` → Save & test
@@ -370,7 +374,16 @@ go-commerce/
 - **Kafka 발행 재시도** — `payment.success` 발행 시 지수 백오프(2^n초)로 일시적 장애에 대한 신뢰성 향상.
 
 ### 관측성 (Observability)
-- **분산 트레이싱** — 모든 서비스가 OpenTelemetry(OTLP)를 통해 Jaeger로 트레이스를 전송합니다. 서비스 경계를 넘는 HTTP 요청을 추적합니다.
+- **분산 트레이싱** — 모든 서비스가 OpenTelemetry(OTLP)를 통해 Jaeger로 트레이스를 전송합니다.
+  - **구현 완료**: ORDERFC → PRODUCTFC 간 HTTP 요청에 `otel.GetTextMapPropagator().Inject()`로 trace context를 전파하여, 하나의 요청이 여러 서비스를 거치는 흐름을 Jaeger에서 단일 트레이스로 확인 가능합니다.
+  - **현재 한계**: PAYMENTFC → USERFC gRPC 호출은 수동 스팬 생성만 되어 있고 `otelgrpc` 인터셉터를 통한 자동 context 전파는 미적용. Kafka 이벤트도 메시지 헤더 기반 전파가 아직 없어 비동기 구간은 별도 트레이스로 기록됩니다.
+  - **개선 방향**: gRPC에 `otelgrpc` Stats Handler 적용, Kafka Producer/Consumer에 `otelsarama` 헤더 전파 추가로 전체 요청 흐름을 하나의 트레이스에서 확인 가능하도록 확장 예정.
+
+#### Jaeger 분산 트레이싱
+
+| 트레이스 검색 | 트레이스 상세 |
+|:---:|:---:|
+| ![Jaeger Search](docs/screenshots/jaeger-search-results.png) | ![Jaeger Trace Detail](docs/screenshots/jaeger-trace-detail.png) |
 - **구조화된 로깅** — 전체 서비스에서 zerolog JSON 출력을 사용합니다.
 - **감사 로깅** — 모든 결제 이벤트(생성, 결제 완료, 실패, 만료)를 MongoDB에 기록하여 추적성과 디버깅을 지원합니다.
 - **중앙 로그 수집** — Loki가 로그 스트림을 저장하고, Promtail(서비스별 1개)이 앱 로그 파일에서 전송합니다. Grafana Explore에서 `job`별로 조회합니다.

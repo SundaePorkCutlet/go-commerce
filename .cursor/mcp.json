@@ -7,6 +7,23 @@
         "@modelcontextprotocol/server-postgres",
         "postgresql://admin:admin@localhost:5433/postgres"
       ]
+    },
+    "github": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-github"
+      ]
+    },
+    "prometheus": {
+      "command": "npx",
+      "args": [
+        "prometheus-mcp@latest",
+        "stdio"
+      ],
+      "env": {
+        "PROMETHEUS_URL": "http://localhost:9090"
+      }
     }
   }
 }

@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Go Commerce - Event Flow</title>
+    <style>
+      :root {
+        --bg: radial-gradient(circle at 12% 16%, #f7faff 0%, #eef3fb 48%, #e9eef8 100%);
+        --panel: #ffffff;
+        --text: #0f172a;
+        --muted: #5f6f86;
+        --line: #dde5f2;
+        --svc-bg: linear-gradient(180deg, #f8fbff 0%, #f1f6ff 100%);
+        --svc-border: #d4deee;
+        --svc-accent: #4e79d9;
+        --evt-bg: linear-gradient(180deg, #fffaf0 0%, #fff4df 100%);
+        --evt-border: #ead7ac;
+        --evt-accent: #c89b46;
+        --fail-bg: linear-gradient(180deg, #fff5f6 0%, #ffeff1 100%);
+        --fail-border: #efcdd4;
+        --fail-accent: #cf6f78;
+        --ok-bg: linear-gradient(180deg, #eaf9f2 0%, #e2f4eb 100%);
+        --ok-accent: #2f9a77;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans KR", Arial, sans-serif;
+        color: var(--text);
+        background: var(--bg);
+      }
+
+      .frame {
+        width: 1400px;
+        margin: 28px auto;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        padding: 34px 38px 30px;
+        box-shadow: 0 16px 42px rgba(26, 43, 79, 0.12);
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 36px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+      }
+
+      .sub {
+        margin-top: 10px;
+        color: var(--muted);
+        font-size: 18px;
+        font-weight: 500;
+      }
+
+      .divider {
+        margin: 22px 0 24px;
+        height: 1px;
+        background: var(--line);
+      }
+
+      .section {
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 20px 22px 18px;
+        background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+      }
+
+      .section + .section {
+        margin-top: 16px;
+      }
+
+      .row-title {
+        display: inline-block;
+        font-size: 16px;
+        font-weight: 800;
+        border-radius: 999px;
+        padding: 8px 15px;
+        margin-bottom: 14px;
+      }
+
+      .ok {
+        color: var(--ok-accent);
+        background: var(--ok-bg);
+      }
+
+      .fail {
+        color: #9a4f5a;
+        background: #faecee;
+      }
+
+      .flow {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+
+      .node {
+        min-width: 172px;
+        text-align: center;
+        padding: 13px 14px 12px;
+        border-radius: 12px;
+        border: 1px solid var(--svc-border);
+        background: var(--svc-bg);
+        font-size: 24px;
+        font-weight: 800;
+        letter-spacing: 0.02em;
+        box-shadow: 0 4px 10px rgba(68, 88, 128, 0.08);
+      }
+
+      .event {
+        background: var(--evt-bg);
+        border-color: var(--evt-border);
+        color: #8d6a2f;
+      }
+
+      .event.fail {
+        background: var(--fail-bg);
+        border-color: var(--fail-border);
+        color: #a6525d;
+      }
+
+      .arrow {
+        font-size: 30px;
+        font-weight: 700;
+        color: #8391a8;
+        padding: 0 2px;
+      }
+
+      .notes {
+        margin-top: 24px;
+        border-top: 1px dashed #d6dfed;
+        padding-top: 20px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+      }
+
+      .note {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        font-size: 16px;
+        color: #2a3446;
+        font-weight: 500;
+      }
+
+      .dot {
+        margin-top: 7px;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        flex: 0 0 10px;
+      }
+
+      .blue { background: var(--svc-accent); }
+      .amber { background: var(--evt-accent); }
+      .red { background: var(--fail-accent); }
+      .green { background: var(--ok-accent); }
+
+      .foot {
+        margin-top: 16px;
+        color: #6a7485;
+        font-size: 15px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="frame">
+      <h1>주문·결제·재고 이벤트 처리 흐름</h1>
+      <div class="sub">정상 흐름과 실패 보상 흐름을 분리하고, 순서·재처리·중복 방지까지 운영 관점으로 확장</div>
+      <div class="divider"></div>
+
+      <div class="section">
+        <span class="row-title ok">정상 흐름</span>
+        <div class="flow">
+          <div class="node">ORDER</div>
+          <div class="arrow">→</div>
+          <div class="node event">order.created</div>
+          <div class="arrow">→</div>
+          <div class="node">PAYMENT</div>
+          <div class="arrow">→</div>
+          <div class="node event">payment.success</div>
+          <div class="arrow">→</div>
+          <div class="node">ORDER</div>
+        </div>
+        <div class="flow" style="margin-top: 10px;">
+          <div class="node">ORDER</div>
+          <div class="arrow">→</div>
+          <div class="node event">stock.updated</div>
+          <div class="arrow">→</div>
+          <div class="node">PRODUCT</div>
+        </div>
+      </div>
+
+      <div class="section">
+        <span class="row-title fail">실패 보상 흐름</span>
+        <div class="flow">
+          <div class="node">PAYMENT</div>
+          <div class="arrow">→</div>
+          <div class="node event fail">payment.failed</div>
+          <div class="arrow">→</div>
+          <div class="node">ORDER</div>
+          <div class="arrow">→</div>
+          <div class="node event fail">stock.rollback</div>
+          <div class="arrow">→</div>
+          <div class="node">PRODUCT</div>
+        </div>
+      </div>
+
+      <div class="notes">
+        <div class="note"><span class="dot blue"></span><span>Partition Key 기반으로 동일 사용자 이벤트의 순서를 보장</span></div>
+        <div class="note"><span class="dot amber"></span><span>DLQ 토픽으로 실패 이벤트 재처리 루트를 확보</span></div>
+        <div class="note"><span class="dot red"></span><span>Redis 멱등 키로 중복 소비·중복 반영 가능성 완화</span></div>
+        <div class="note"><span class="dot green"></span><span>결제 실패 시 stock.rollback으로 보상 처리 일관성 유지</span></div>
+      </div>
+
+      <div class="foot">※ 주문 저장과 이벤트 발행의 원자성은 추후 Outbox 패턴으로 강화 가능</div>
+    </div>
+  </body>
+</html>

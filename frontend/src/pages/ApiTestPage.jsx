@@ -49,11 +49,18 @@ const PRESET_REQUESTS = [
         method: 'POST',
         path: '/api/v1/orders',
         service: 'orderfc',
-        body: JSON.stringify({
-          products: [{ product_id: 1, quantity: 2 }],
-          payment_method: 'BANK_TRANSFER',
-          shipping_address: 'Seoul, Korea',
-        }, null, 2),
+        body: JSON.stringify(
+          {
+            // 백엔드 models.CheckoutRequest: items, idempotency_token(선택)
+            items: [{ product_id: 1, quantity: 2, price: 10000 }],
+            payment_method: 'BANK_TRANSFER',
+            shipping_address: 'Seoul, Korea',
+            // 같은 토큰으로 재전송하면 order_request_logs에 걸려 멱등 동작(두 번째는 500 + already exists)
+            idempotency_token: 'api-test-demo-idempotency-001',
+          },
+          null,
+          2
+        ),
         auth: true,
       },
       { method: 'GET', path: '/api/v1/orders/history', service: 'orderfc', body: null, auth: true },
