@@ -2,7 +2,7 @@
 
 구간별 색, 컴포넌트별 스택, 프로토콜 라벨, 관측성을 한 장에 읽히게 구성한 **레이어드 뷰** 아키텍처 문서입니다.
 
-- **HTML 상세 다이어그램**: `docs/architecture.html` · 백업 `architecture-v1.html` · CSMS형 레이아웃 시도 `architecture-v2.html`
+- **HTML 상세 다이어그램**: `docs/architecture.html` · 백업 `architecture-v1.html` · **메인 권장** `architecture-v2.html` (Edge에 **Project Q&A Assistant** — `tools/project-qa-assistant`, RAG·Chroma·FastAPI·React 반영)
 - **다이어그램**: [Mermaid Live](https://mermaid.live)에서 PNG/SVG로 내보낼 수 있습니다.
 - **한계**: Mermaid는 아이콘·AWS 심볼 수준의 그래픽은 아니므로, **최종 비주얼은 Live에서 SVG 내보낸 뒤 Figma에 로고·타이틀만 얹는 방식**이 가장 깔끔합니다.
 

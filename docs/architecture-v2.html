@@ -357,7 +357,7 @@
 </head>
 <body>
 <h1>Go Commerce — System Architecture</h1>
-<p class="sub">Event-driven e-commerce · Go microservices · DB per Service · Kafka · Full observability</p>
+<p class="sub">Event-driven e-commerce · Go microservices · DB per Service · Kafka · RAG-powered Q&amp;A</p>
 <p class="ver">Author: Hong Junho</p>
 
 <div id="canvas">
@@ -379,6 +379,18 @@
               <div class="n-b">
                 <div class="row c-fw"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/nginx/nginx-original.svg" alt=""><span>Reverse proxy · Static</span></div>
                 <span class="port">:3001</span>
+              </div>
+            </div>
+            <div id="qa-assistant" class="n edge" style="width:200px">
+              <div class="n-h"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/react/react-original.svg" alt="">Project Q&amp;A Assistant</div>
+              <div class="n-b">
+                <div class="row c-fw"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/react/react-original.svg" alt=""><span>React · Vite · Chat UI</span></div>
+                <div class="row c-fw"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/nginx/nginx-original.svg" alt=""><span>Nginx · SPA + /api proxy</span></div>
+                <div class="row c-go"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/python/python-original.svg" alt=""><span>FastAPI · RAG pipeline</span></div>
+                <div class="row c-db"><span>Chroma — code chunk index</span></div>
+                <div class="row c-ex"><span>OpenAI — answer synthesis</span></div>
+                <div class="row c-ob"><span>Confidence · evidence paths</span></div>
+                <span class="port">EC2 :80</span> <span class="port" style="background:#37474F">tools/project-qa-assistant</span>
               </div>
             </div>
           </div>
@@ -534,7 +546,7 @@
     <h3>Stack & protocols (summary)</h3>
     <table>
       <tr><th>Layer</th><th>Runtime / stack</th><th>Protocols</th></tr>
-      <tr><td>Edge</td><td>React · Vite · Nginx</td><td>HTTP / HTTPS</td></tr>
+      <tr><td>Edge</td><td>React · Vite · Nginx · Project Q&amp;A (RAG)</td><td>HTTP / HTTPS</td></tr>
       <tr><td>Application</td><td>Go · Gin · GORM · PostgreSQL (per service)</td><td>HTTP/JSON · gRPC</td></tr>
       <tr><td>Messaging</td><td>Kafka (CP 7.6)</td><td>Pub/Sub (Kafka protocol)</td></tr>
       <tr><td>Data</td><td>Redis · MongoDB</td><td>TCP</td></tr>
@@ -628,7 +640,7 @@ document.addEventListener('DOMContentLoaded', () => {
     svg.appendChild(tx);
   }
 
-  const B=g('browser'), F=g('frontend');
+  const B=g('browser'), F=g('frontend'), QA=g('qa-assistant');
   const U=g('userfc'), P=g('productfc'), O=g('orderfc'), PY=g('paymentfc');
   const KF=g('kafka'), RD=g('redis'), MG=g('mongodb'), XN=g('xendit'), VL=g('vault');
   const PR=g('prometheus'), JG=g('jaeger'), LK=g('loki'), GR=g('grafana'), NE=g('nodeexp');
@@ -731,9 +743,11 @@ document.addEventListener('DOMContentLoaded', () => {
       '#FF8F00', 'am', { w: '1.5' });
   }
 
-  const edgeY = Math.round((B.cy + F.cy) / 2);
+  const edgeY = Math.round((B.cy + F.cy + QA.cy) / 3);
   line(B.r, edgeY, F.l, edgeY, '#1565C0', 'bl', {ms:'bl'});
   lbl((B.r+F.l)/2, edgeY, 'HTTP', '#1565C0');
+  line(F.r, edgeY, QA.l, edgeY, '#1565C0', 'bl', {ms:'bl'});
+  lbl((F.r+QA.l)/2, edgeY, 'HTTP', '#1565C0');
 
   line(trunkX, trunkY, trunkX, fanY, '#1565C0', null, {ms:'bl'});
   line(U.cx, fanY, PY.cx, fanY, '#1565C0', null, {w:'1.5'});
