@@ -6,6 +6,13 @@
 
 사용자 관리, 상품 카탈로그, 주문 처리, 결제 연동을 담당하는 분산 시스템입니다. 각 도메인은 독립된 서비스로 운영되며, 자체 데이터베이스를 보유하고 Apache Kafka를 통한 비동기 통신과 gRPC를 통한 동기 통신을 사용합니다.
 
+## 빠른 링크
+
+- **운영 서비스**: [https://hongjunho.xyz](https://hongjunho.xyz)
+- **메인 아키텍처(HTML)**: [docs/architecture-v2.html](docs/architecture-v2.html)
+- **아키텍처 문서(설명)**: [docs/architecture.md](docs/architecture.md)
+- **RAG Q&A 소스**: [`tools/project-qa-assistant`](tools/project-qa-assistant)
+
 ---
 
 ## 아키텍처 개요
@@ -261,6 +268,12 @@ docker compose up -d --build
 - PAYMENTFC: http://localhost:28083/swagger/index.html  
 
 핸들러 어노테이션 변경 후 `swag init -g main.go`로 문서를 재생성합니다 (`go install github.com/swaggo/swag/cmd/swag@latest` 필요).
+
+### 운영 엔드포인트
+
+- **Public**: [https://hongjunho.xyz](https://hongjunho.xyz)
+- **TLS**: Let's Encrypt 인증서 적용 (자동 갱신 설정)
+- **Routing**: Host Nginx(80/443) -> web container(`3001`) -> internal API(`/api`)
 
 ### 3. 환경 변수 (선택)
 
@@ -539,6 +552,7 @@ go-commerce/
 - [x] Loki + Grafana + Prometheus 중앙 로깅 및 메트릭
 - [ ] Kafka 프로덕션 구성 (파티션, 복제, DLQ)
 - [x] CI/CD 파이프라인 (GitHub Actions)
+- [x] HTTPS 적용 (Let's Encrypt + Nginx TLS termination)
 
 ---
 
