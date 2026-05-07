@@ -98,9 +98,9 @@ go-commerce 코드베이스를 근거 기반으로 질의응답하는 RAG 보조
 | 서비스 | HTTP 포트 | gRPC 포트 | 역할 |
 |--------|-----------|-----------|------|
 | **USERFC** | 28080 | 50051 | 회원 가입·인증(JWT), gRPC를 통한 사용자 정보 제공; Redis: 슬라이딩 윈도우 Rate Limit(로그인/회원가입), JWT 블랙리스트(로그아웃) |
-| **PRODUCTFC** | 28081 | — | 상품·카테고리 CRUD, 재고 관리, Kafka를 통한 재고 처리; Redis: Cache-Aside + 무효화, 조회수 랭킹(Sorted Set) |
-| **ORDERFC** | 28082 | — | 주문 생성, 주문 이력 조회, `order.created`·`stock.updated` 발행, `payment.success`·`payment.failed` 구독 |
-| **PAYMENTFC** | 28083 | — | Xendit 인보이스 생성, 웹훅 처리, 배치 처리, 감사 로깅, `payment.success`·`payment.failed` 발행 |
+| **PRODUCTFC** | 28081 | — | 상품·카테고리 CRUD, 재고 예약/복구, `order.created` 구독 및 `stock.reserved`·`stock.rejected` 발행; Redis: Cache-Aside + 무효화, 조회수 랭킹(Sorted Set) |
+| **ORDERFC** | 28082 | — | 주문 생성, 주문 이력 조회, Transactional Outbox 기반 `order.created` 발행, `stock.rejected`·`payment.success`·`payment.failed` 구독 |
+| **PAYMENTFC** | 28083 | — | `stock.reserved` 이후 Xendit 인보이스 생성, 웹훅 처리, 배치 처리, 감사 로깅, `payment.success`·`payment.failed` 발행 |
 
 각 서비스는 **Go** 애플리케이션(Gin, GORM)으로, 레이어드 아키텍처를 따릅니다:
 
@@ -112,7 +112,7 @@ Handler → Usecase → Service → Repository
 
 ## 이벤트 드리븐 흐름
 
-### 주문 → 결제 → 재고 (정상 흐름)
+### 주문 → 재고 예약 → 결제 (Saga 정상 흐름)
 
 ```mermaid
 sequenceDiagram
@@ -124,17 +124,17 @@ sequenceDiagram
     participant Xendit
 
     Client->>ORDERFC: POST /checkout
-    ORDERFC->>ORDERFC: Validate products, persist order
+    ORDERFC->>ORDERFC: Validate products, persist order + outbox
     ORDERFC-->>Kafka: order.created
-    ORDERFC-->>Kafka: stock.updated
     ORDERFC->>Client: 201 Order created
 
-    Kafka->>PAYMENTFC: Consume order.created
+    Kafka->>PRODUCTFC: Consume order.created
+    PRODUCTFC->>PRODUCTFC: Reserve/decrease stock atomically
+    PRODUCTFC-->>Kafka: stock.reserved
+
+    Kafka->>PAYMENTFC: Consume stock.reserved
     PAYMENTFC->>Xendit: Create invoice
     PAYMENTFC->>PAYMENTFC: Save payment (PENDING)
-
-    Kafka->>PRODUCTFC: Consume stock.updated
-    PRODUCTFC->>PRODUCTFC: Decrease stock
 
     Client->>Xendit: User pays
     Xendit->>PAYMENTFC: Webhook (PAID)
@@ -143,6 +143,21 @@ sequenceDiagram
 
     Kafka->>ORDERFC: Consume payment.success
     ORDERFC->>ORDERFC: Update order status → COMPLETED
+```
+
+### 재고 부족 → 주문 취소
+
+```mermaid
+sequenceDiagram
+    participant Kafka
+    participant PRODUCTFC
+    participant ORDERFC
+
+    Kafka->>PRODUCTFC: Consume order.created
+    PRODUCTFC->>PRODUCTFC: Try reserve stock
+    PRODUCTFC-->>Kafka: stock.rejected
+    Kafka->>ORDERFC: Consume stock.rejected
+    ORDERFC->>ORDERFC: Update order status → CANCELLED
 ```
 
 ### 결제 실패 → 재고 롤백
@@ -167,10 +182,12 @@ sequenceDiagram
 
 | 토픽 | Producer | Consumer | 용도 |
 |------|----------|----------|------|
-| `order.created` | ORDERFC | PAYMENTFC | 인보이스 생성 트리거 |
-| `stock.updated` | ORDERFC | PRODUCTFC | 주문 시 상품 재고 차감 |
+| `order.created` | ORDERFC | PRODUCTFC | 주문 생성 후 재고 예약 시작 |
+| `stock.reserved` | PRODUCTFC | PAYMENTFC | 재고 예약 성공 후 결제 생성 트리거 |
+| `stock.rejected` | PRODUCTFC | ORDERFC | 재고 부족 등 예약 실패로 주문 취소 |
+| `stock.updated` | ORDERFC | PRODUCTFC | 기존 재고 차감 토픽 (Saga 전환 후 deprecated) |
 | `stock.rollback` | ORDERFC | PRODUCTFC | 결제 실패 시 재고 복구 |
-| `stock.updated.dlq` / `stock.rollback.dlq` | PRODUCTFC | (운영 / 재처리) | 처리 실패 메시지 (JSON 래핑) |
+| `order.created.dlq` / `stock.updated.dlq` / `stock.rollback.dlq` | PRODUCTFC | (운영 / 재처리) | 처리 실패 메시지 (JSON 래핑) |
 | `payment.success` | PAYMENTFC | ORDERFC | 주문 상태 완료 처리 |
 | `payment.failed` | PAYMENTFC | ORDERFC | 주문 취소 및 재고 롤백 트리거 |
 
@@ -392,8 +409,9 @@ go-commerce/
 
 ### 이벤트 드리븐 아키텍처
 - **비동기 통합** — 주문과 결제 흐름을 Kafka로 분리하여, 동기 HTTP 호출 대신 도메인 이벤트에 반응합니다.
-- **Saga 패턴 (Choreography)** — 주문 → 재고 차감 → 결제 → 성공/실패 → 재고 롤백. 각 서비스가 이벤트를 수신하고 실패 시 보상 처리합니다.
-- **5개의 Kafka 토픽** — `order.created`, `stock.updated`, `stock.rollback`, `payment.success`, `payment.failed`가 주문 전체 라이프사이클을 구성합니다.
+- **Saga 패턴 (Choreography)** — ORDERFC는 `order.created`만 발행하고, PRODUCTFC가 재고 도메인 소유자로서 `stock.reserved` 또는 `stock.rejected`를 발행합니다. PAYMENTFC는 `stock.reserved` 이후 결제를 생성하고, 실패 시 보상 이벤트로 재고를 복구합니다.
+- **Transactional Outbox** — 주문 저장과 `order.created` 발행 예정 이벤트를 같은 DB 트랜잭션에 저장하고, outbox worker가 Kafka 발행을 재시도합니다.
+- **Kafka 토픽** — `order.created`, `stock.reserved`, `stock.rejected`, `stock.rollback`, `payment.success`, `payment.failed`가 주문 전체 라이프사이클을 구성합니다.
 
 ### 결제 처리
 - **Xendit 연동** — Xendit API를 통한 실시간 인보이스 생성, 웹훅 기반 결제 확인.
