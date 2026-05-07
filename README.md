@@ -447,7 +447,7 @@ go-commerce/
 ### 코드 품질
 - **레이어드 아키텍처** — Handler → Usecase → Service → Repository. 명확한 관심사 분리.
 - **SQL Injection 방지** — 검색 쿼리의 OrderBy/Sort에 화이트리스트 검증을 적용합니다.
-- **멱등성 토큰** — 주문 생성 시 멱등성 토큰을 지원하여 중복 주문을 방지합니다.
+- **멱등성 토큰** — 주문 생성 전에 idempotency token을 `PROCESSING` 상태로 선점하고, 성공 시 `order_id`와 함께 `SUCCEEDED`로 저장합니다. 동일 token 재요청은 새 주문을 만들지 않고 기존 결과를 반환하며, 요청 본문 해시가 다르면 재사용 충돌로 처리합니다.
 
 ---
 
