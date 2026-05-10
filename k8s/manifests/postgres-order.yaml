@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres-order
+  namespace: go-commerce
+  labels:
+    app: postgres-order
+    app.kubernetes.io/name: postgres-order
+    app.kubernetes.io/part-of: go-commerce
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres-order
+  template:
+    metadata:
+      labels:
+        app: postgres-order
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:15
+          ports:
+            - name: postgres
+              containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: order
+            - name: POSTGRES_USER
+              value: admin
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: orderfc-secret
+                  key: db-password
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "admin", "-d", "order"]
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          volumeMounts:
+            - name: postgres-order-data
+              mountPath: /var/lib/postgresql/data
+      volumes:
+        - name: postgres-order-data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-order
+  namespace: go-commerce
+  labels:
+    app: postgres-order
+    app.kubernetes.io/name: postgres-order
+    app.kubernetes.io/part-of: go-commerce
+spec:
+  selector:
+    app: postgres-order
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: postgres

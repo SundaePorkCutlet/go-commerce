@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zookeeper
+  namespace: go-commerce
+  labels:
+    app: zookeeper
+    app.kubernetes.io/name: zookeeper
+    app.kubernetes.io/part-of: go-commerce
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: zookeeper
+  template:
+    metadata:
+      labels:
+        app: zookeeper
+        app.kubernetes.io/name: zookeeper
+        app.kubernetes.io/part-of: go-commerce
+    spec:
+      containers:
+        - name: zookeeper
+          image: zookeeper:3.9
+          ports:
+            - name: client
+              containerPort: 2181
+          readinessProbe:
+            tcpSocket:
+              port: client
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          volumeMounts:
+            - name: zookeeper-data
+              mountPath: /data
+            - name: zookeeper-datalog
+              mountPath: /datalog
+      volumes:
+        - name: zookeeper-data
+          emptyDir: {}
+        - name: zookeeper-datalog
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: zookeeper
+  namespace: go-commerce
+  labels:
+    app: zookeeper
+    app.kubernetes.io/name: zookeeper
+    app.kubernetes.io/part-of: go-commerce
+spec:
+  selector:
+    app: zookeeper
+  ports:
+    - name: client
+      port: 2181
+      targetPort: client

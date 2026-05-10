@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres-payment
+  namespace: go-commerce
+  labels:
+    app: postgres-payment
+    app.kubernetes.io/name: postgres-payment
+    app.kubernetes.io/part-of: go-commerce
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres-payment
+  template:
+    metadata:
+      labels:
+        app: postgres-payment
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:15
+          ports:
+            - name: postgres
+              containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: payment
+            - name: POSTGRES_USER
+              value: admin
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: orderfc-secret
+                  key: db-password
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "admin", "-d", "payment"]
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          volumeMounts:
+            - name: postgres-payment-data
+              mountPath: /var/lib/postgresql/data
+      volumes:
+        - name: postgres-payment-data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-payment
+  namespace: go-commerce
+  labels:
+    app: postgres-payment
+    app.kubernetes.io/name: postgres-payment
+    app.kubernetes.io/part-of: go-commerce
+spec:
+  selector:
+    app: postgres-payment
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: postgres

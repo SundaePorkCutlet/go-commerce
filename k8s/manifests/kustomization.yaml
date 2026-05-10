@@ -1,0 +1,21 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - namespace.yaml
+  - orderfc-secret.yaml
+  - userfc-configmap.yaml
+  - productfc-configmap.yaml
+  - orderfc-configmap.yaml
+  - paymentfc-configmap.yaml
+  - postgres-user.yaml
+  - postgres-product.yaml
+  - postgres-order.yaml
+  - postgres-payment.yaml
+  - redis.yaml
+  - mongodb.yaml
+  - zookeeper.yaml
+  - kafka.yaml
+  - userfc.yaml
+  - productfc.yaml
+  - orderfc.yaml
+  - paymentfc.yaml
