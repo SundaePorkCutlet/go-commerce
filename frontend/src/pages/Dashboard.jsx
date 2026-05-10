@@ -136,7 +136,7 @@ function SectionTitle({ eyebrow, title, children }) {
 
 export default function Dashboard() {
   return (
-    <div className="case-study -mx-4 -my-4 md:-mx-6 md:-my-6 lg:-mx-8 lg:-my-8">
+    <div className="portfolio-showcase -mx-4 -my-4 md:-mx-6 md:-my-6 lg:-mx-8 lg:-my-8">
       <section className="case-hero relative min-h-[76vh] overflow-hidden px-5 py-16 md:px-10 lg:px-16">
         <img
           src={heroEvidence}
@@ -156,7 +156,7 @@ export default function Dashboard() {
           </div>
 
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-300">
-            Backend portfolio case study
+            Backend engineering portfolio
           </p>
           <h1 className="mt-4 max-w-4xl text-5xl font-semibold tracking-tight text-white md:text-7xl">
             Go Commerce
@@ -204,8 +204,8 @@ export default function Dashboard() {
       </section>
 
       <section className="border-y border-white/10 bg-white/[0.025] px-5 py-16 md:px-10 lg:px-16">
-        <SectionTitle eyebrow="Animated flow" title="Saga choreography without pretending it is simple">
-          The page is static, but the flow mirrors the locally verified checkout path.
+        <SectionTitle eyebrow="System flow" title="Saga choreography across service boundaries">
+          The checkout path shows how order, stock, and payment domains coordinate through Kafka events.
         </SectionTitle>
 
         <div className="mx-auto max-w-6xl">
@@ -252,8 +252,8 @@ export default function Dashboard() {
       </section>
 
       <section className="border-y border-white/10 bg-[#0d0f0f] px-5 py-16 md:px-10 lg:px-16">
-        <SectionTitle eyebrow="Evidence wall" title="Verified locally, presented honestly">
-          This is not a fake live production console. It is a case study page backed by committed verification artifacts.
+        <SectionTitle eyebrow="Implementation evidence" title="Kubernetes, Saga, and observability proof">
+          Verification artifacts from the kind deployment are presented as part of the engineering portfolio.
         </SectionTitle>
 
         <div className="mx-auto grid max-w-6xl grid-cols-1 gap-4 md:grid-cols-2">
@@ -306,10 +306,10 @@ export default function Dashboard() {
           <div>
             <div className="flex items-center gap-2 text-sm font-semibold text-white">
               <CheckCircle2 size={17} className="text-emerald-300" />
-              Portfolio mode
+              Portfolio-ready presentation
             </div>
             <p className="mt-2 text-sm leading-6 text-zinc-400">
-              Live dev tools still exist in the navigation, but the first impression is now a static case study that does not depend on a production Kubernetes cluster.
+              The first screen is designed for public review, while the navigation keeps the deeper API and debugging tools available.
             </p>
           </div>
           <a

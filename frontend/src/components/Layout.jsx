@@ -11,7 +11,7 @@ import {
 } from 'lucide-react'
 
 const NAV_ITEMS = [
-  { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
+  { to: '/', icon: LayoutDashboard, label: 'Overview' },
   { to: '/api-test', icon: FlaskConical, label: 'API Test' },
   { to: '/postgres', icon: Database, label: 'PostgreSQL' },
   { to: '/redis', icon: HardDrive, label: 'Redis' },
@@ -31,7 +31,7 @@ export default function Layout() {
             </div>
             <div>
               <h1 className="text-sm font-semibold tracking-tight text-white">Go Commerce</h1>
-              <p className="mt-0.5 text-[11px] uppercase tracking-[0.16em] text-zinc-500">case study</p>
+              <p className="mt-0.5 text-[11px] uppercase tracking-[0.16em] text-zinc-500">engineering portfolio</p>
             </div>
           </NavLink>
 
