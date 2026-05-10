@@ -7,6 +7,7 @@ import {
   FileText,
   BarChart3,
   FlaskConical,
+  Network,
 } from 'lucide-react'
 
 const NAV_ITEMS = [
@@ -21,25 +22,30 @@ const NAV_ITEMS = [
 
 export default function Layout() {
   return (
-    <div className="flex h-screen">
-      <aside className="w-60 bg-gray-900 border-r border-gray-800 flex flex-col">
-        <div className="p-5 border-b border-gray-800">
-          <h1 className="text-lg font-bold tracking-tight text-white">
-            Go Commerce
-          </h1>
-          <p className="text-xs text-gray-500 mt-0.5">Monitoring Dashboard</p>
+    <div className="min-h-screen bg-[#11100d] text-stone-100 lg:flex">
+      <aside className="border-b border-stone-800 bg-[#15130f] lg:sticky lg:top-0 lg:flex lg:h-screen lg:w-64 lg:flex-col lg:border-b-0 lg:border-r">
+        <div className="flex items-center gap-3 border-b border-stone-800 p-4 lg:p-5">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-amber-400/30 bg-amber-400/10 text-amber-200">
+            <Network size={20} />
+          </div>
+          <div>
+            <h1 className="text-base font-semibold tracking-tight text-white">
+              Go Commerce
+            </h1>
+            <p className="mt-0.5 text-xs text-stone-500">Operations Console</p>
+          </div>
         </div>
-        <nav className="flex-1 p-3 space-y-1">
+        <nav className="flex gap-1 overflow-x-auto p-3 lg:block lg:flex-1 lg:space-y-1 lg:overflow-visible">
           {NAV_ITEMS.map(({ to, icon: Icon, label }) => (
             <NavLink
               key={to}
               to={to}
               end={to === '/'}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
+                `flex shrink-0 items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors ${
                   isActive
-                    ? 'bg-blue-600/20 text-blue-400 font-medium'
-                    : 'text-gray-400 hover:bg-gray-800 hover:text-gray-200'
+                    ? 'border border-amber-400/30 bg-amber-400/10 font-medium text-amber-200'
+                    : 'border border-transparent text-stone-400 hover:border-stone-800 hover:bg-stone-900 hover:text-stone-200'
                 }`
               }
             >
@@ -48,11 +54,16 @@ export default function Layout() {
             </NavLink>
           ))}
         </nav>
-        <div className="p-4 border-t border-gray-800 text-xs text-gray-600">
-          Phase 0 ~ 5 학습 대시보드
+        <div className="hidden border-t border-stone-800 p-4 lg:block">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-stone-500">
+            portfolio mode
+          </p>
+          <p className="mt-2 text-xs leading-5 text-stone-500">
+            MSA, Saga, Outbox, Kubernetes, Observability
+          </p>
         </div>
       </aside>
-      <main className="flex-1 overflow-auto p-6">
+      <main className="flex-1 overflow-auto p-4 md:p-6 lg:p-8">
         <Outlet />
       </main>
     </div>

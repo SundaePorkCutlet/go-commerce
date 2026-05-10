@@ -1,5 +1,26 @@
 @import "tailwindcss";
 
+html {
+  background: #11100d;
+}
+
 body {
-  @apply bg-gray-950 text-gray-100 antialiased;
+  @apply bg-[#11100d] text-stone-100 antialiased;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+::selection {
+  background: rgba(245, 158, 11, 0.28);
+  color: #fff7ed;
+}
+
+.dashboard-grid {
+  background-color: #15130f;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+  background-size: 28px 28px;
 }

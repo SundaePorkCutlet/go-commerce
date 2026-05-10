@@ -1,9 +1,9 @@
 export default function Card({ title, children, className = '', actions }) {
   return (
-    <div className={`bg-gray-900 border border-gray-800 rounded-xl ${className}`}>
+    <div className={`rounded-lg border border-stone-800 bg-[#171410] ${className}`}>
       {title && (
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-800">
-          <h2 className="text-sm font-semibold text-gray-200">{title}</h2>
+        <div className="flex items-center justify-between border-b border-stone-800 px-5 py-4">
+          <h2 className="text-sm font-semibold text-stone-200">{title}</h2>
           {actions && <div className="flex gap-2">{actions}</div>}
         </div>
       )}
