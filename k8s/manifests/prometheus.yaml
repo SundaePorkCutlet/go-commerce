@@ -1,0 +1,140 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: go-commerce
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+      evaluation_interval: 15s
+
+    rule_files:
+      - /etc/prometheus/alerts.yml
+
+    scrape_configs:
+      - job_name: userfc
+        static_configs:
+          - targets: [userfc:28080]
+            labels:
+              service: userfc
+        metrics_path: /metrics
+
+      - job_name: productfc
+        static_configs:
+          - targets: [productfc:8081]
+            labels:
+              service: productfc
+        metrics_path: /metrics
+
+      - job_name: orderfc
+        static_configs:
+          - targets: [orderfc:8083]
+            labels:
+              service: orderfc
+        metrics_path: /metrics
+
+      - job_name: paymentfc
+        static_configs:
+          - targets: [paymentfc:28083]
+            labels:
+              service: paymentfc
+        metrics_path: /metrics
+  alerts.yml: |
+    groups:
+      - name: commerce_http
+        interval: 30s
+        rules:
+          - alert: FCScrapeTargetDown
+            expr: up{job=~"userfc|productfc|orderfc|paymentfc"} == 0
+            for: 2m
+            labels:
+              severity: critical
+            annotations:
+              summary: "Prometheus scrape target down ({{ $labels.job }})"
+              description: "Service {{ $labels.job }} / {{ $labels.instance }} is not responding to scrapes."
+
+          - alert: HighHTTP5xxRate
+            expr: |
+              sum(rate(commerce_http_requests_total{status=~"5.."}[5m])) by (service)
+                /
+              sum(rate(commerce_http_requests_total[5m])) by (service)
+              > 0.05
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "High 5xx ratio on {{ $labels.service }}"
+              description: "More than 5% of HTTP responses are 5xx in the last 5m."
+
+          - alert: XenditWebhookProcessErrors
+            expr: increase(commerce_payment_xendit_webhook_processed_total{outcome="process_error"}[15m]) > 5
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Repeated Xendit webhook process_error (paymentfc)"
+              description: "More than 5 process_error outcomes in 15m. Check paymentfc logs."
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus
+  namespace: go-commerce
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: prometheus
+  template:
+    metadata:
+      labels:
+        app: prometheus
+    spec:
+      containers:
+        - name: prometheus
+          image: prom/prometheus:v2.52.0
+          imagePullPolicy: IfNotPresent
+          args:
+            - --config.file=/etc/prometheus/prometheus.yml
+            - --storage.tsdb.path=/prometheus
+            - --web.enable-lifecycle
+          ports:
+            - name: http
+              containerPort: 9090
+          readinessProbe:
+            httpGet:
+              path: /-/ready
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /-/healthy
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          volumeMounts:
+            - name: prometheus-config
+              mountPath: /etc/prometheus
+            - name: prometheus-data
+              mountPath: /prometheus
+      volumes:
+        - name: prometheus-config
+          configMap:
+            name: prometheus-config
+        - name: prometheus-data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus
+  namespace: go-commerce
+spec:
+  selector:
+    app: prometheus
+  ports:
+    - name: http
+      port: 9090
+      targetPort: http

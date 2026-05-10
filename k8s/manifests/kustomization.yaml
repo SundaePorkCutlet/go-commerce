@@ -19,3 +19,5 @@ resources:
   - productfc.yaml
   - orderfc.yaml
   - paymentfc.yaml
+  - prometheus.yaml
+  - grafana.yaml

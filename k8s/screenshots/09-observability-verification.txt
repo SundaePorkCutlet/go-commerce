@@ -1,0 +1,39 @@
+$ ./k8s/scripts/verify-observability.sh
+NAME                         READY   STATUS    RESTARTS   AGE
+grafana-5b6b6dfc6f-sglqn     1/1     Running   0          85s
+prometheus-6f7bdc744-wmstf   1/1     Running   0          85s
+NAME         TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)    AGE
+prometheus   ClusterIP   10.96.199.107   <none>        9090/TCP   2m51s
+grafana      ClusterIP   10.96.237.2     <none>        3000/TCP   2m51s
+
+== Prometheus readiness and queries ==
+Prometheus Server is Ready.
+
+
+QUERY: up{job="userfc"}
+{"status":"success","data":{"resultType":"vector","result":[{"metric":{"__name__":"up","instance":"userfc:28080","job":"userfc","service":"userfc"},"value":[1778402585.167,"1"]}]}}
+
+QUERY: up{job="productfc"}
+{"status":"success","data":{"resultType":"vector","result":[{"metric":{"__name__":"up","instance":"productfc:8081","job":"productfc","service":"productfc"},"value":[1778402585.173,"1"]}]}}
+
+QUERY: up{job="orderfc"}
+{"status":"success","data":{"resultType":"vector","result":[{"metric":{"__name__":"up","instance":"orderfc:8083","job":"orderfc","service":"orderfc"},"value":[1778402585.179,"1"]}]}}
+
+QUERY: up{job="paymentfc"}
+{"status":"success","data":{"resultType":"vector","result":[{"metric":{"__name__":"up","instance":"paymentfc:28083","job":"paymentfc","service":"paymentfc"},"value":[1778402585.183,"1"]}]}}
+
+QUERY: sum by (service) (commerce_http_requests_total)
+{"status":"success","data":{"resultType":"vector","result":[{"metric":{"service":"productfc"},"value":[1778402585.187,"1837"]},{"metric":{"service":"userfc"},"value":[1778402585.187,"2283"]},{"metric":{"service":"paymentfc"},"value":[1778402585.187,"2272"]},{"metric":{"service":"orderfc"},"value":[1778402585.187,"1776"]}]}}
+pod "prometheus-check" deleted from go-commerce namespace
+
+== Grafana health ==
+{
+  "database": "ok",
+  "version": "11.2.0",
+  "commit": "2a88694fd3ced0335bf3726cc5d0adc2d1858855"
+}
+pod "grafana-check" deleted from go-commerce namespace
+
+Grafana local access:
+kubectl port-forward -n go-commerce service/grafana 13000:3000
+open http://localhost:13000/d/go-commerce-red/go-commerce-http-red

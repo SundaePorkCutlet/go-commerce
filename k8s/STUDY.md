@@ -394,17 +394,60 @@ kubectl get pods
 
 ## 8. 포트폴리오 캡처 체크리스트
 
-- [ ] `kubectl get pods -n go-commerce`
-- [ ] `kubectl get svc -n go-commerce`
-- [ ] `kubectl logs deployment/orderfc -n go-commerce`
-- [ ] ORDERFC API 호출 성공
-- [ ] PRODUCTFC 재고 예약 로그
-- [ ] PAYMENTFC 결제 생성 로그
-- [ ] Grafana 또는 Jaeger 화면
+- [x] `kubectl get pods -n go-commerce`
+- [x] `kubectl get svc -n go-commerce`
+- [x] ORDERFC API 호출 성공
+- [x] PRODUCTFC 재고 차감 확인
+- [x] PAYMENTFC 결제 요청 저장 확인
+- [x] Prometheus scrape target 확인
+- [x] Grafana health 확인
+- [ ] Loki 또는 Jaeger 고도화
 
-## 9. 다음에 구현할 파일
+## 9. Observability를 왜 붙이는가?
 
-첫 번째 구현 대상:
+서비스가 `Running`이라는 사실은 운영 관점에서 충분하지 않습니다.
+
+```text
+Pod Running
+```
+
+은 컨테이너가 살아 있다는 뜻에 가깝고,
+
+```text
+Prometheus up = 1
+```
+
+은 Prometheus가 해당 서비스의 `/metrics` endpoint를 주기적으로 읽고 있다는 뜻입니다.
+
+이번 Phase 5에서는 다음 흐름을 만들었습니다.
+
+```text
+Go service middleware
+-> /metrics
+-> Prometheus scrape
+-> PromQL query
+-> Grafana dashboard
+```
+
+이때 Grafana는 데이터를 직접 수집하지 않습니다. Grafana는 Prometheus를 datasource로 사용해 PromQL 결과를 시각화합니다.
+
+대표적으로 보는 HTTP RED metric은 아래 세 가지입니다.
+
+| 이름 | 질문 | Prometheus metric |
+|------|------|-------------------|
+| Rate | 요청이 얼마나 들어오는가? | `commerce_http_requests_total` |
+| Errors | 실패 비율이 얼마나 되는가? | `commerce_http_requests_total{status=~"5.."}` |
+| Duration | 응답 시간이 얼마나 걸리는가? | `commerce_http_request_duration_seconds_bucket` |
+
+면접에서 중요한 포인트는 "Grafana를 띄웠다"가 아니라, 장애 상황에서 어떤 질문에 답할 수 있는지를 설명하는 것입니다.
+
+예를 들면:
+
+> 주문 요청이 느려졌을 때 먼저 Grafana에서 ORDERFC p95 latency가 올라갔는지 확인하고, 5xx ratio가 같이 올라가는지 봅니다. 이후 특정 서비스만 느린지 전체 서비스가 느린지 PromQL의 `service` label 기준으로 나눠 봅니다.
+
+## 10. 처음 구현했던 파일
+
+Phase 1의 첫 번째 구현 대상:
 
 ```text
 k8s/manifests/namespace.yaml
@@ -413,11 +456,11 @@ k8s/scripts/create-kind-cluster.sh
 k8s/scripts/build-and-load-images.sh
 ```
 
-처음 목표는 작습니다.
+처음 목표는 작게 잡았습니다.
 
 > ORDERFC Pod 하나를 kind에서 Running 상태로 만들고, `kubectl logs`로 앱 기동 로그를 확인한다.
 
-## 10. Phase 1에서 왜 Postgres/Redis도 같이 띄우는가?
+## 11. Phase 1에서 왜 Postgres/Redis도 같이 띄우는가?
 
 ORDERFC는 `main.go`에서 시작하자마자 아래 순서로 외부 의존성에 연결합니다.
 

@@ -1,0 +1,9 @@
+$ kubectl get pods -n go-commerce -l "app in (prometheus,grafana)"
+NAME                         READY   STATUS    RESTARTS   AGE
+grafana-5b6b6dfc6f-sglqn     1/1     Running   0          84s
+prometheus-6f7bdc744-wmstf   1/1     Running   0          84s
+
+$ kubectl get svc -n go-commerce prometheus grafana
+NAME         TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)    AGE
+prometheus   ClusterIP   10.96.199.107   <none>        9090/TCP   2m51s
+grafana      ClusterIP   10.96.237.2     <none>        3000/TCP   2m51s

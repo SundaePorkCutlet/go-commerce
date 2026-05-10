@@ -1,6 +1,6 @@
 # Kubernetes Verification Evidence
 
-Captured: 2026-05-10 08:35:35 UTC
+Captured: 2026-05-10 08:44:20 UTC
 
 ## kubectl get pods -n go-commerce
 - Text: `01-pods.txt`
@@ -29,3 +29,11 @@ Captured: 2026-05-10 08:35:35 UTC
 ## PAYMENTFC DB: payment_requests after Saga
 - Text: `07-saga-payment-db.txt`
 - Image: `07-saga-payment-db.svg`
+
+## Prometheus/Grafana Pods and Services
+- Text: `08-observability-pods-services.txt`
+- Image: `08-observability-pods-services.svg`
+
+## Prometheus/Grafana Verification
+- Text: `09-observability-verification.txt`
+- Image: `09-observability-verification.svg`

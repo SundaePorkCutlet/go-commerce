@@ -26,7 +26,7 @@
 | 2 | Kafka/Zookeeper 추가 | `kafka:9092` 접근 + Kafka topic 생성 |
 | 3 | PRODUCTFC/PAYMENTFC/USERFC 추가 | 4개 서비스와 각 DB Pod Running |
 | 4 | Kafka 기반 Saga 확인 | `order.created -> stock.reserved -> payment_request` 확인 |
-| 5 | Observability 연결 | Prometheus/Grafana 또는 Jaeger 화면 캡처 |
+| 5 | Observability 연결 | Prometheus/Grafana 배포 + RED metric 검증 |
 
 ## Directory Plan
 
@@ -178,6 +178,8 @@ kubectl logs deployment/paymentfc -n go-commerce
 - `05-saga-order-db.svg`: ORDERFC orders/outbox 상태
 - `06-saga-product-db.svg`: PRODUCTFC 재고 차감 결과
 - `07-saga-payment-db.svg`: PAYMENTFC payment_requests 결과
+- `08-observability-pods-services.svg`: Prometheus/Grafana Pod와 Service 상태
+- `09-observability-verification.svg`: Prometheus scrape와 Grafana health 검증
 
 ## Current Verification
 
@@ -348,6 +350,79 @@ order by id desc limit 5;
 - PRODUCTFC Kubernetes ConfigMap에 `secret.jwt_secret`이 없어 USERFC JWT를 거절하던 문제 수정
 - ORDERFC 주문 이력 JSON에 status를 문자열로 저장해 조회 시 int unmarshal 에러가 나던 문제 수정
 
+### Phase 5 Observability Verification
+
+2026-05-10 기준 Prometheus와 Grafana를 kind 클러스터 안에 배포했습니다.
+
+배포 구성:
+
+```text
+USERFC /metrics
+PRODUCTFC /metrics
+ORDERFC /metrics
+PAYMENTFC /metrics
+-> Prometheus scrape
+-> Grafana dashboard: Go Commerce - HTTP RED
+```
+
+적용:
+
+```bash
+kubectl apply -k k8s/manifests
+kubectl rollout status deployment/prometheus -n go-commerce
+kubectl rollout status deployment/grafana -n go-commerce
+```
+
+검증:
+
+```bash
+./k8s/scripts/verify-observability.sh
+```
+
+확인한 Prometheus query:
+
+```promql
+up{job="userfc"}
+up{job="productfc"}
+up{job="orderfc"}
+up{job="paymentfc"}
+sum by (service) (commerce_http_requests_total)
+```
+
+검증 결과:
+
+```text
+userfc    up = 1
+productfc up = 1
+orderfc   up = 1
+paymentfc up = 1
+Grafana   /api/health = ok
+```
+
+Grafana 접근:
+
+```bash
+kubectl port-forward -n go-commerce service/grafana 13000:3000
+```
+
+브라우저:
+
+```text
+http://localhost:13000/d/go-commerce-red/go-commerce-http-red
+```
+
+로그나 DB만 보는 것과 달리, Prometheus/Grafana를 붙이면 서비스별 HTTP 요청량, 에러율, p95 latency를 한 화면에서 볼 수 있습니다. 이 프로젝트에서는 대표적인 RED metric을 기준으로 구성했습니다.
+
+| Metric | 의미 | 예시 PromQL |
+|--------|------|-------------|
+| Rate | 서비스별 요청량 | `sum by (service) (rate(commerce_http_requests_total[5m]))` |
+| Errors | 5xx 비율 | `sum by (service) (rate(commerce_http_requests_total{status=~"5.."}[5m])) / sum by (service) (rate(commerce_http_requests_total[5m]))` |
+| Duration | p95 latency | `histogram_quantile(0.95, sum by (service, le) (rate(commerce_http_request_duration_seconds_bucket[5m])))` |
+
+면접에서는 이렇게 설명할 수 있습니다.
+
+> 각 Go 서비스가 `/metrics`로 Prometheus metric을 노출하도록 되어 있어, Kubernetes 내부에 Prometheus를 배포하고 Service DNS로 각 서비스를 scrape하도록 구성했습니다. Grafana는 ConfigMap 기반 provisioning으로 Prometheus datasource와 RED dashboard를 자동 등록했습니다. 검증은 단순 화면 확인이 아니라 `up{job=...}`와 서비스별 request counter PromQL 결과로 확인했습니다.
+
 ### Kafka Notes
 
 Kafka는 단순히 `kafka:9092` 포트가 열렸다고 준비 완료라고 보기 어렵습니다. Consumer group을 쓰려면 내부 토픽인 `__consumer_offsets`가 만들어지고 group coordinator가 활성화되어야 합니다.
@@ -388,7 +463,7 @@ Saga까지 검증하면:
 
 ## Next Step
 
-다음 작업은 관측성 Phase입니다. Prometheus/Grafana 또는 Jaeger를 Kubernetes에 올리고, Phase 4 Saga 흐름을 metric/log/trace 중 하나 이상으로 캡처합니다.
+다음 작업은 관측성 고도화입니다. 현재는 Prometheus/Grafana로 HTTP RED metric을 확인했습니다. 이후에는 Loki로 서비스 로그를 모으거나, Jaeger/OpenTelemetry로 Saga trace를 연결할 수 있습니다.
 
 ```bash
 kubectl logs deployment/orderfc -n go-commerce
@@ -396,7 +471,7 @@ kubectl logs deployment/productfc -n go-commerce
 kubectl logs deployment/paymentfc -n go-commerce
 ```
 
-성공하면 `k8s/screenshots/`에 `kubectl get pods`, `kubectl get svc`, `/health`, `/ready`, Kafka topic 목록, Saga 이벤트 로그를 캡처합니다.
+현재 `k8s/screenshots/`에는 `kubectl get pods`, `kubectl get svc`, `/health`, `/ready`, Kafka topic 목록, Saga DB 상태, Prometheus/Grafana 검증 결과가 저장되어 있습니다.
 
 ## Troubleshooting
 
