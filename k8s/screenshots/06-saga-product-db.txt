@@ -1,0 +1,6 @@
+ id |              name               | stock 
+----+---------------------------------+-------
+  2 | Phase4 Fixed Product 1778396729 |     4
+  1 | Phase4 Product 1778396567       |     8
+(2 rows)
+

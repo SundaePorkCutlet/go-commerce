@@ -1,0 +1,6 @@
+ id | order_id | user_id | amount | status | retry_count 
+----+----------+---------+--------+--------+-------------
+  2 |        2 |       4 |   9000 | FAILED |           4
+  1 |        1 |       3 |  24690 | FAILED |           4
+(2 rows)
+

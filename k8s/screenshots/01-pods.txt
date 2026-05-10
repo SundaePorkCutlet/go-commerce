@@ -1,0 +1,13 @@
+NAME                                READY   STATUS    RESTARTS   AGE
+kafka-667989f455-mhlnk              1/1     Running   0          13h
+mongodb-864dc54fc7-p66l9            1/1     Running   0          118m
+orderfc-5c984569b-z72cj             1/1     Running   0          90m
+paymentfc-6d6d8cdff7-8w2t7          1/1     Running   0          118m
+postgres-order-57f4f999fd-spt8m     1/1     Running   0          17h
+postgres-payment-5bb89b7b56-qqgtt   1/1     Running   0          118m
+postgres-product-6458b645b7-w6lgc   1/1     Running   0          118m
+postgres-user-566ff6fb97-w6m2d      1/1     Running   0          118m
+productfc-7d7f468f54-d8v64          1/1     Running   0          93m
+redis-67868666fb-qm826              1/1     Running   0          17h
+userfc-595f45749c-s68n6             1/1     Running   0          118m
+zookeeper-6877fb56c8-kwr5c          1/1     Running   0          14h

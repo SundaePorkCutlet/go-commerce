@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="768" viewBox="0 0 960 768">
+<rect width="100%" height="100%" rx="12" fill="#111827"/>
+<rect x="0" y="0" width="100%" height="42" rx="12" fill="#1f2937"/>
+<circle cx="22" cy="21" r="6" fill="#ef4444"/><circle cx="42" cy="21" r="6" fill="#f59e0b"/><circle cx="62" cy="21" r="6" fill="#22c55e"/>
+<text x="84" y="26" fill="#e5e7eb" font-family="Menlo, Consolas, monospace" font-size="13">./k8s/scripts/verify-services.sh</text>
+<text x="24" y="56" fill="#9ca3af" font-family="Menlo, Consolas, monospace" font-size="12">captured 2026-05-10 08:35:35 UTC</text>
+<text x="24" y="82" fill="#d1d5db" font-family="Menlo, Consolas, monospace" font-size="13" xml:space="preserve">NAME                                READY   STATUS    RESTARTS   AGE</text>
+<text x="24" y="100" fill="#d1d5db" font-family="Menlo, Consolas, monospace" font-size="13" xml:space="preserve">kafka-667989f455-mhlnk              1/1     Running   0          13h</text>
+<text x="24" y="118" fill="#d1d5db" font-family="Menlo, Consolas, monospace" font-size="13" xml:space="preserve">mongodb-864dc54fc7-p66l9            1/1     Running   0          118m</text>
+<text x="24" y="136" fill="#d1d5db" font-family="Menlo, Consolas, monospace" font-size="13" xml:space="preserve">orderfc-5c984569b-z72cj             1/1     Running   0          90m</text>
+<text x="24" y="154" fill="#d1d5db" font-family="Menlo, Consolas, monospace" font-size="13" xml:space="preserve">paymentfc-6d6d8cdff7-8w2t7          1/1     Running   0          118m</text>
+<text x="24" y="172" fill="#d1d5db" font-family="Menlo, Consolas, monospace" font-size="13" xml:space="preserve">postgres-order-57f4f999fd-spt8m     1/1     Running   0          17h</text>
+<text x="24" y="190" fill="#d1d5db" font-family="Menlo, Consolas, monospace" font-size="13" xml:space="preserve">postgres-payment-5bb89b7b56-qqgtt   1/1     Running   0          118m</text>
+<text x="24" y="208" fill="#d1d5db" font-family="Menlo, Consolas, monospace" font-size="13" xml:space="preserve">postgres-product-6458b645b7-w6lgc   1/1     Running   0          118m</text>
+<text x="24" y="226" fill="#d1d5db" font-family="Menlo, Consolas, monospace" font-size="13" xml:space="preserve">postgres-user-566ff6fb97-w6m2d      1/1     Running   0          118m</text>
+<text x="24" y="244" fill="#d1d5db" font-family="Menlo, Consolas, monospace" font-size="13" xml:space="preserve">productfc-7d7f468f54-d8v64          1/1     Running   0          93m</text>
+<text x="24" y="262" fill="#d1d5db" font-family="Menlo, Consolas, monospace" font-size="13" xml:space="preserve">redis-67868666fb-qm826              1/1     Running   0          17h</text>
+<text x="24" y="280" fill="#d1d5db" font-family="Menlo, Consolas, monospace" font-size="13" xml:space="preserve">userfc-595f45749c-s68n6             1/1     Running   0          118m</text>
+<text x="24" y="298" fill="#d1d5db" font-family="Menlo, Consolas, monospace" font-size="13" xml:space="preserve">zookeeper-6877fb56c8-kwr5c          1/1     Running   0          14h</text>
+<text x="24" y="316" fill="#d1d5db" font-family="Menlo, Consolas, monospace" font-size="13" xml:space="preserve">NAME               TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)               AGE</text>
+<text x="24" y="334" fill="#d1d5db" font-family="Menlo, Consolas, monospace" font-size="13" xml:space="preserve">kafka              ClusterIP   10.96.140.82    &lt;none&gt;        9092/TCP              14h</text>
+<text x="24" y="352" fill="#d1d5db" font-family="Menlo, Consolas, monospace" font-size="13" xml:space="preserve">mongodb            ClusterIP   10.96.201.171   &lt;none&gt;        27017/TCP             118m</text>
+<text x="24" y="370" fill="#d1d5db" font-family="Menlo, Consolas, monospace" font-size="13" xml:space="preserve">orderfc            ClusterIP   10.96.171.74    &lt;none&gt;        8083/TCP              17h</text>
+<text x="24" y="388" fill="#d1d5db" font-family="Menlo, Consolas, monospace" font-size="13" xml:space="preserve">paymentfc          ClusterIP   10.96.176.125   &lt;none&gt;        28083/TCP             118m</text>
+<text x="24" y="406" fill="#d1d5db" font-family="Menlo, Consolas, monospace" font-size="13" xml:space="preserve">postgres-order     ClusterIP   10.96.228.103   &lt;none&gt;        5432/TCP              17h</text>
+<text x="24" y="424" fill="#d1d5db" font-family="Menlo, Consolas, monospace" font-size="13" xml:space="preserve">postgres-payment   ClusterIP   10.96.65.180    &lt;none&gt;        5432/TCP              118m</text>
+<text x="24" y="442" fill="#d1d5db" font-family="Menlo, Consolas, monospace" font-size="13" xml:space="preserve">postgres-product   ClusterIP   10.96.179.232   &lt;none&gt;        5432/TCP              118m</text>
+<text x="24" y="460" fill="#d1d5db" font-family="Menlo, Consolas, monospace" font-size="13" xml:space="preserve">postgres-user      ClusterIP   10.96.14.37     &lt;none&gt;        5432/TCP              118m</text>
+<text x="24" y="478" fill="#d1d5db" font-family="Menlo, Consolas, monospace" font-size="13" xml:space="preserve">productfc          ClusterIP   10.96.208.176   &lt;none&gt;        8081/TCP              118m</text>
+<text x="24" y="496" fill="#d1d5db" font-family="Menlo, Consolas, monospace" font-size="13" xml:space="preserve">redis              ClusterIP   10.96.7.195     &lt;none&gt;        6379/TCP              17h</text>
+<text x="24" y="514" fill="#d1d5db" font-family="Menlo, Consolas, monospace" font-size="13" xml:space="preserve">userfc             ClusterIP   10.96.252.129   &lt;none&gt;        28080/TCP,50051/TCP   118m</text>
+<text x="24" y="532" fill="#d1d5db" font-family="Menlo, Consolas, monospace" font-size="13" xml:space="preserve">zookeeper          ClusterIP   10.96.55.111    &lt;none&gt;        2181/TCP              14h</text>
+<text x="24" y="550" fill="#d1d5db" font-family="Menlo, Consolas, monospace" font-size="13" xml:space="preserve">Checking service health endpoints from inside the cluster</text>
+<text x="24" y="568" fill="#d1d5db" font-family="Menlo, Consolas, monospace" font-size="13" xml:space="preserve">GET http://userfc:28080/health</text>
+<text x="24" y="586" fill="#d1d5db" font-family="Menlo, Consolas, monospace" font-size="13" xml:space="preserve">{&quot;service&quot;:&quot;userfc&quot;,&quot;status&quot;:&quot;healthy&quot;}</text>
+<text x="24" y="604" fill="#d1d5db" font-family="Menlo, Consolas, monospace" font-size="13" xml:space="preserve">GET http://productfc:8081/health</text>
+<text x="24" y="622" fill="#d1d5db" font-family="Menlo, Consolas, monospace" font-size="13" xml:space="preserve">{&quot;service&quot;:&quot;productfc&quot;,&quot;status&quot;:&quot;healthy&quot;}</text>
+<text x="24" y="640" fill="#d1d5db" font-family="Menlo, Consolas, monospace" font-size="13" xml:space="preserve">GET http://orderfc:8083/health</text>
+<text x="24" y="658" fill="#d1d5db" font-family="Menlo, Consolas, monospace" font-size="13" xml:space="preserve">{&quot;service&quot;:&quot;orderfc&quot;,&quot;status&quot;:&quot;healthy&quot;}</text>
+<text x="24" y="676" fill="#d1d5db" font-family="Menlo, Consolas, monospace" font-size="13" xml:space="preserve">GET http://paymentfc:28083/health</text>
+<text x="24" y="694" fill="#d1d5db" font-family="Menlo, Consolas, monospace" font-size="13" xml:space="preserve">{&quot;service&quot;:&quot;paymentfc&quot;,&quot;status&quot;:&quot;healthy&quot;}</text>
+<text x="24" y="712" fill="#d1d5db" font-family="Menlo, Consolas, monospace" font-size="13" xml:space="preserve">pod &quot;service-health-check&quot; deleted from go-commerce namespace</text>
+<text x="24" y="730" fill="#d1d5db" font-family="Menlo, Consolas, monospace" font-size="13" xml:space="preserve">Checking recent service startup signals</text>
+</svg>

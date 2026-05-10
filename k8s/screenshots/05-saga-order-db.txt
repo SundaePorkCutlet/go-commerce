@@ -1,0 +1,12 @@
+ id | user_id | amount | total_qty | status 
+----+---------+--------+-----------+--------
+  2 |       4 |   9000 |         3 |      0
+  1 |       3 |  24690 |         2 |      0
+(2 rows)
+
+ id |     topic     | event_key |  status   | retry_count 
+----+---------------+-----------+-----------+-------------
+  2 | order.created | order-2   | published |           0
+  1 | order.created | order-1   | published |           0
+(2 rows)
+

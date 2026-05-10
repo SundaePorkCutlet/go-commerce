@@ -1,0 +1,37 @@
+NAME                                READY   STATUS    RESTARTS   AGE
+kafka-667989f455-mhlnk              1/1     Running   0          13h
+mongodb-864dc54fc7-p66l9            1/1     Running   0          118m
+orderfc-5c984569b-z72cj             1/1     Running   0          90m
+paymentfc-6d6d8cdff7-8w2t7          1/1     Running   0          118m
+postgres-order-57f4f999fd-spt8m     1/1     Running   0          17h
+postgres-payment-5bb89b7b56-qqgtt   1/1     Running   0          118m
+postgres-product-6458b645b7-w6lgc   1/1     Running   0          118m
+postgres-user-566ff6fb97-w6m2d      1/1     Running   0          118m
+productfc-7d7f468f54-d8v64          1/1     Running   0          93m
+redis-67868666fb-qm826              1/1     Running   0          17h
+userfc-595f45749c-s68n6             1/1     Running   0          118m
+zookeeper-6877fb56c8-kwr5c          1/1     Running   0          14h
+NAME               TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)               AGE
+kafka              ClusterIP   10.96.140.82    <none>        9092/TCP              14h
+mongodb            ClusterIP   10.96.201.171   <none>        27017/TCP             118m
+orderfc            ClusterIP   10.96.171.74    <none>        8083/TCP              17h
+paymentfc          ClusterIP   10.96.176.125   <none>        28083/TCP             118m
+postgres-order     ClusterIP   10.96.228.103   <none>        5432/TCP              17h
+postgres-payment   ClusterIP   10.96.65.180    <none>        5432/TCP              118m
+postgres-product   ClusterIP   10.96.179.232   <none>        5432/TCP              118m
+postgres-user      ClusterIP   10.96.14.37     <none>        5432/TCP              118m
+productfc          ClusterIP   10.96.208.176   <none>        8081/TCP              118m
+redis              ClusterIP   10.96.7.195     <none>        6379/TCP              17h
+userfc             ClusterIP   10.96.252.129   <none>        28080/TCP,50051/TCP   118m
+zookeeper          ClusterIP   10.96.55.111    <none>        2181/TCP              14h
+Checking service health endpoints from inside the cluster
+GET http://userfc:28080/health
+{"service":"userfc","status":"healthy"}
+GET http://productfc:8081/health
+{"service":"productfc","status":"healthy"}
+GET http://orderfc:8083/health
+{"service":"orderfc","status":"healthy"}
+GET http://paymentfc:28083/health
+{"service":"paymentfc","status":"healthy"}
+pod "service-health-check" deleted from go-commerce namespace
+Checking recent service startup signals

@@ -1,0 +1,13 @@
+NAME               TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)               AGE
+kafka              ClusterIP   10.96.140.82    <none>        9092/TCP              14h
+mongodb            ClusterIP   10.96.201.171   <none>        27017/TCP             118m
+orderfc            ClusterIP   10.96.171.74    <none>        8083/TCP              17h
+paymentfc          ClusterIP   10.96.176.125   <none>        28083/TCP             118m
+postgres-order     ClusterIP   10.96.228.103   <none>        5432/TCP              17h
+postgres-payment   ClusterIP   10.96.65.180    <none>        5432/TCP              118m
+postgres-product   ClusterIP   10.96.179.232   <none>        5432/TCP              118m
+postgres-user      ClusterIP   10.96.14.37     <none>        5432/TCP              118m
+productfc          ClusterIP   10.96.208.176   <none>        8081/TCP              118m
+redis              ClusterIP   10.96.7.195     <none>        6379/TCP              17h
+userfc             ClusterIP   10.96.252.129   <none>        28080/TCP,50051/TCP   118m
+zookeeper          ClusterIP   10.96.55.111    <none>        2181/TCP              14h

@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="300" viewBox="0 0 960 300">
+<rect width="100%" height="100%" rx="12" fill="#111827"/>
+<rect x="0" y="0" width="100%" height="42" rx="12" fill="#1f2937"/>
+<circle cx="22" cy="21" r="6" fill="#ef4444"/><circle cx="42" cy="21" r="6" fill="#f59e0b"/><circle cx="62" cy="21" r="6" fill="#22c55e"/>
+<text x="84" y="26" fill="#e5e7eb" font-family="Menlo, Consolas, monospace" font-size="13">ORDERFC DB: orders + order_outbox_events</text>
+<text x="24" y="56" fill="#9ca3af" font-family="Menlo, Consolas, monospace" font-size="12">captured 2026-05-10 08:35:35 UTC</text>
+<text x="24" y="82" fill="#d1d5db" font-family="Menlo, Consolas, monospace" font-size="13" xml:space="preserve"> id | user_id | amount | total_qty | status </text>
+<text x="24" y="100" fill="#d1d5db" font-family="Menlo, Consolas, monospace" font-size="13" xml:space="preserve">----+---------+--------+-----------+--------</text>
+<text x="24" y="118" fill="#d1d5db" font-family="Menlo, Consolas, monospace" font-size="13" xml:space="preserve">  2 |       4 |   9000 |         3 |      0</text>
+<text x="24" y="136" fill="#d1d5db" font-family="Menlo, Consolas, monospace" font-size="13" xml:space="preserve">  1 |       3 |  24690 |         2 |      0</text>
+<text x="24" y="154" fill="#d1d5db" font-family="Menlo, Consolas, monospace" font-size="13" xml:space="preserve">(2 rows)</text>
+<text x="24" y="172" fill="#d1d5db" font-family="Menlo, Consolas, monospace" font-size="13" xml:space="preserve"></text>
+<text x="24" y="190" fill="#d1d5db" font-family="Menlo, Consolas, monospace" font-size="13" xml:space="preserve"> id |     topic     | event_key |  status   | retry_count </text>
+<text x="24" y="208" fill="#d1d5db" font-family="Menlo, Consolas, monospace" font-size="13" xml:space="preserve">----+---------------+-----------+-----------+-------------</text>
+<text x="24" y="226" fill="#d1d5db" font-family="Menlo, Consolas, monospace" font-size="13" xml:space="preserve">  2 | order.created | order-2   | published |           0</text>
+<text x="24" y="244" fill="#d1d5db" font-family="Menlo, Consolas, monospace" font-size="13" xml:space="preserve">  1 | order.created | order-1   | published |           0</text>
+<text x="24" y="262" fill="#d1d5db" font-family="Menlo, Consolas, monospace" font-size="13" xml:space="preserve">(2 rows)</text>
+</svg>

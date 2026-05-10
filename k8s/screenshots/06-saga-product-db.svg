@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="192" viewBox="0 0 960 192">
+<rect width="100%" height="100%" rx="12" fill="#111827"/>
+<rect x="0" y="0" width="100%" height="42" rx="12" fill="#1f2937"/>
+<circle cx="22" cy="21" r="6" fill="#ef4444"/><circle cx="42" cy="21" r="6" fill="#f59e0b"/><circle cx="62" cy="21" r="6" fill="#22c55e"/>
+<text x="84" y="26" fill="#e5e7eb" font-family="Menlo, Consolas, monospace" font-size="13">PRODUCTFC DB: products stock after Saga</text>
+<text x="24" y="56" fill="#9ca3af" font-family="Menlo, Consolas, monospace" font-size="12">captured 2026-05-10 08:35:35 UTC</text>
+<text x="24" y="82" fill="#d1d5db" font-family="Menlo, Consolas, monospace" font-size="13" xml:space="preserve"> id |              name               | stock </text>
+<text x="24" y="100" fill="#d1d5db" font-family="Menlo, Consolas, monospace" font-size="13" xml:space="preserve">----+---------------------------------+-------</text>
+<text x="24" y="118" fill="#d1d5db" font-family="Menlo, Consolas, monospace" font-size="13" xml:space="preserve">  2 | Phase4 Fixed Product 1778396729 |     4</text>
+<text x="24" y="136" fill="#d1d5db" font-family="Menlo, Consolas, monospace" font-size="13" xml:space="preserve">  1 | Phase4 Product 1778396567       |     8</text>
+<text x="24" y="154" fill="#d1d5db" font-family="Menlo, Consolas, monospace" font-size="13" xml:space="preserve">(2 rows)</text>
+</svg>

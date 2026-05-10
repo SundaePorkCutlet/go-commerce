@@ -167,6 +167,18 @@ kubectl logs deployment/paymentfc -n go-commerce
 
 여기서 `order.created`, `stock.reserved`, `payment.success` 흐름을 캡처하면 좋습니다.
 
+현재 캡처 파일은 [screenshots/README.md](screenshots/README.md)에 정리했습니다.
+
+저장된 증거:
+
+- `01-pods.svg`: 전체 Pod Running 상태
+- `02-services.svg`: Service DNS/port 목록
+- `03-kafka-verification.svg`: Kafka topic과 `kafka:9092` 접근 검증
+- `04-service-health.svg`: USERFC/PRODUCTFC/ORDERFC/PAYMENTFC `/health` 검증
+- `05-saga-order-db.svg`: ORDERFC orders/outbox 상태
+- `06-saga-product-db.svg`: PRODUCTFC 재고 차감 결과
+- `07-saga-payment-db.svg`: PAYMENTFC payment_requests 결과
+
 ## Current Verification
 
 2026-05-09 기준 Phase 1/2 검증:
