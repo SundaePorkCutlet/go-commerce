@@ -445,7 +445,93 @@ Go service middleware
 
 > 주문 요청이 느려졌을 때 먼저 Grafana에서 ORDERFC p95 latency가 올라갔는지 확인하고, 5xx ratio가 같이 올라가는지 봅니다. 이후 특정 서비스만 느린지 전체 서비스가 느린지 PromQL의 `service` label 기준으로 나눠 봅니다.
 
-## 10. 처음 구현했던 파일
+## 10. 왜 Kubernetes 러닝커브가 높다고 하는가?
+
+이번 프로젝트에서 kind로 배포해보면 Kubernetes 도입 자체는 생각보다 빠르게 느껴질 수 있습니다.
+
+```text
+manifest 작성
+-> kubectl apply
+-> Pod Running
+```
+
+여기까지만 보면 Docker Compose보다 조금 복잡한 배포 도구처럼 보입니다.
+
+하지만 실무에서 Kubernetes의 러닝커브가 높다고 말하는 이유는 YAML을 작성하는 것이 어려워서가 아닙니다. 핵심은 **문제가 생겼을 때 원인을 좁히고 운영 판단을 하는 것**입니다.
+
+예를 들어 Pod가 뜨지 않는다고 해도 원인은 하나가 아닙니다.
+
+| 증상 | 확인할 것 |
+|------|-----------|
+| `ImagePullBackOff` | 이미지 이름, registry 접근, kind image load 여부 |
+| `CrashLoopBackOff` | 앱 로그, ConfigMap/Secret, DB/Redis/Kafka 연결 |
+| `Running`인데 요청 실패 | Service selector, targetPort, EndpointSlice |
+| readiness 실패 | `/ready` 응답, DB/Redis 의존성, probe path/port |
+| Kafka consumer 불안정 | advertised listener, broker readiness, consumer group, topic |
+| 배포 중 장애 | rolling update, graceful shutdown, readinessProbe |
+| 느린 응답 | requests/limits, DB 병목, Prometheus latency metric |
+
+즉 Kubernetes는 단순한 실행 도구라기보다, 분산 시스템을 운영하기 위한 표준 인터페이스에 가깝습니다.
+
+### "Kubernetes 해봤다"와 "운영 관점으로 이해한다"의 차이
+
+약한 설명:
+
+> Kubernetes로 배포해봤습니다.
+
+이 설명은 어떤 문제를 해결했는지 보이지 않습니다.
+
+더 나은 설명:
+
+> Docker Compose 기반 go-commerce MSA를 kind 기반 Kubernetes 환경으로 전환하고, 서비스별 Deployment/Service/ConfigMap/Secret을 구성했습니다.
+
+더 좋은 설명:
+
+> Kubernetes 전환 과정에서 Service DNS, readiness/liveness probe, Kafka advertised listener, `enableServiceLinks`, Prometheus scrape target 문제를 직접 확인하고 해결했습니다. 단순히 Pod를 Running으로 만든 것이 아니라 Saga 흐름과 HTTP RED metric까지 검증했습니다.
+
+면접에서는 마지막 설명처럼 **겪은 문제와 해결한 판단**을 같이 말해야 합니다.
+
+### 왜 채용에서 Kubernetes를 중요하게 보는가?
+
+회사가 이미 Kubernetes 위에서 서비스를 운영하고 있다면, 백엔드 개발자는 API 코드만 작성하지 않습니다.
+
+실무에서는 보통 이런 질문을 받게 됩니다.
+
+- 이 서비스는 어떤 ConfigMap/Secret을 사용하나요?
+- readiness와 liveness는 왜 나눴나요?
+- 배포 직후 트래픽이 실패하면 어디부터 보나요?
+- Kafka/DB/Redis 연결 장애와 애플리케이션 버그를 어떻게 구분하나요?
+- Prometheus/Grafana에서 내 서비스의 요청량, 에러율, latency를 어떻게 확인하나요?
+
+이 질문에 답할 수 있으면 실무 투입 비용이 낮아집니다. 그래서 Kubernetes 경험은 단순 우대사항이 아니라, 회사에 따라 서류 필터 기준이 되기도 합니다.
+
+### 이 프로젝트에서 말할 수 있는 포인트
+
+이 프로젝트는 단순 Nginx 배포 예제가 아닙니다.
+
+```text
+Go MSA
+-> PostgreSQL database per service
+-> Redis
+-> MongoDB
+-> Kafka/Zookeeper
+-> Saga choreography
+-> Prometheus/Grafana
+```
+
+이 구성을 kind에서 직접 올리고 검증했습니다.
+
+면접 답변 예시:
+
+> 처음에는 Kubernetes 배포가 단순히 YAML을 작성하고 Pod를 띄우는 일이라고 생각했습니다. 하지만 Kafka를 붙이면서 advertised listener, Service DNS, readiness, Kubernetes service env var 충돌 같은 문제를 직접 겪었습니다. 이 과정에서 Kubernetes의 핵심은 배포 자체보다 장애 원인을 관찰하고 좁히는 운영 모델이라는 점을 학습했습니다.
+
+이 답변이 좋은 이유는 다음 세 가지가 들어 있기 때문입니다.
+
+- 단순 사용 경험이 아니라 실제 문제 경험이 있다.
+- 어떤 Kubernetes 개념을 왜 썼는지 설명한다.
+- 백엔드 서비스 운영 관점으로 연결한다.
+
+## 11. 처음 구현했던 파일
 
 Phase 1의 첫 번째 구현 대상:
 
@@ -460,7 +546,7 @@ k8s/scripts/build-and-load-images.sh
 
 > ORDERFC Pod 하나를 kind에서 Running 상태로 만들고, `kubectl logs`로 앱 기동 로그를 확인한다.
 
-## 11. Phase 1에서 왜 Postgres/Redis도 같이 띄우는가?
+## 12. Phase 1에서 왜 Postgres/Redis도 같이 띄우는가?
 
 ORDERFC는 `main.go`에서 시작하자마자 아래 순서로 외부 의존성에 연결합니다.
 
