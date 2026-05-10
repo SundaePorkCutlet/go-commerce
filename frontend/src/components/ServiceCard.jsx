@@ -4,7 +4,7 @@ export default function ServiceCard({ name, health, color }) {
   const isHealthy = health?.status === 'healthy'
 
   return (
-    <div className="rounded-lg border border-stone-800 bg-[#171410] p-5 transition-colors hover:border-stone-700">
+    <div className="rounded-lg border border-white/10 bg-white/[0.035] p-5 transition-colors hover:border-white/20">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <div className="w-3 h-3 rounded-full" style={{ backgroundColor: color }} />

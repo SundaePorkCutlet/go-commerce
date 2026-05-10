@@ -24,7 +24,7 @@
 
 | Phase | 주제 | 문서 |
 |-------|------|------|
-| 0 | [모니터링 대시보드](#phase-0-모니터링-대시보드) | 이 문서 |
+| 0 | [포트폴리오 Case Study + Dev Console](#phase-0-포트폴리오-case-study--dev-console) | 이 문서 |
 | 1 | PostgreSQL 심화 | [phase1-postgresql.md](./phase1-postgresql.md) |
 | 2 | Redis 패턴 활용 | [phase2-redis.md](./phase2-redis.md) |
 | 3 | Kafka 이벤트 아키텍처 | [phase3-kafka.md](./phase3-kafka.md) |
@@ -33,11 +33,11 @@
 
 ---
 
-## Phase 0: 모니터링 대시보드
+## Phase 0: 포트폴리오 Case Study + Dev Console
 
 ### 왜 만들었나
 
-백엔드 4개 서비스가 각각 다른 포트에서 돌아가는데, 상태를 확인하려면 매번 `curl`을 쳐야 했습니다. 이후 Phase에서 추가할 DB 쿼리 모니터링, Redis 캐시 통계, Kafka 이벤트 스트림도 시각적으로 보여줄 공간이 필요했습니다.
+초기에는 백엔드 4개 서비스 상태를 확인하기 위한 모니터링 대시보드로 시작했습니다. 이후 공개 포트폴리오 목적에 맞춰 첫 화면은 실시간 백엔드 의존도를 낮춘 **Case Study 페이지**로 전환하고, API Test와 Phase별 모니터링 기능은 Dev Console로 유지했습니다.
 
 ### 기술 스택
 
@@ -54,7 +54,7 @@ frontend/
 └── src/
     ├── api/services.js     # 4개 백엔드 서비스 API 호출 레이어
     ├── components/         # 재사용 UI 컴포넌트
-    └── pages/              # 7개 페이지 (Dashboard, API Test, 5개 Phase별)
+    └── pages/              # Case Study, API Test, 5개 Phase별 Dev Console
 ```
 
 ### 핵심 개념: Vite Proxy로 CORS 해결
@@ -81,6 +81,6 @@ frontend/
 
 ### 주요 화면
 
-- **Dashboard**: 4개 서비스 헬스체크 + 응답 시간 측정 + 아키텍처 요약
+- **Case Study**: Saga, Outbox, Idempotency, Kubernetes, Observability 검증 자료를 정적 포트폴리오 화면으로 표현
 - **API Test**: Postman 같은 인터페이스로 모든 엔드포인트 직접 호출 가능
-- **Phase별 탭**: 각 기술 모니터링 페이지
+- **Phase별 탭**: 각 기술 모니터링/디버깅 페이지

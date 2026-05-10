@@ -22,48 +22,42 @@ const NAV_ITEMS = [
 
 export default function Layout() {
   return (
-    <div className="min-h-screen bg-[#11100d] text-stone-100 lg:flex">
-      <aside className="border-b border-stone-800 bg-[#15130f] lg:sticky lg:top-0 lg:flex lg:h-screen lg:w-64 lg:flex-col lg:border-b-0 lg:border-r">
-        <div className="flex items-center gap-3 border-b border-stone-800 p-4 lg:p-5">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-amber-400/30 bg-amber-400/10 text-amber-200">
+    <div className="min-h-screen bg-[#080a0a] text-zinc-100">
+      <header className="sticky top-0 z-50 border-b border-white/10 bg-[#080a0a]/88 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-[1480px] flex-col gap-3 px-4 py-3 lg:flex-row lg:items-center lg:justify-between lg:px-8">
+          <NavLink to="/" end className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-cyan-300/30 bg-cyan-300/10 text-cyan-200">
             <Network size={20} />
-          </div>
-          <div>
-            <h1 className="text-base font-semibold tracking-tight text-white">
-              Go Commerce
-            </h1>
-            <p className="mt-0.5 text-xs text-stone-500">Operations Console</p>
-          </div>
+            </div>
+            <div>
+              <h1 className="text-sm font-semibold tracking-tight text-white">Go Commerce</h1>
+              <p className="mt-0.5 text-[11px] uppercase tracking-[0.16em] text-zinc-500">case study</p>
+            </div>
+          </NavLink>
+
+          <nav className="flex gap-1 overflow-x-auto">
+            {NAV_ITEMS.map(({ to, icon: Icon, label }) => (
+              <NavLink
+                key={to}
+                to={to}
+                end={to === '/'}
+                className={({ isActive }) =>
+                  `flex shrink-0 items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors ${
+                    isActive
+                      ? 'border-cyan-300/30 bg-cyan-300/10 font-medium text-cyan-100'
+                      : 'border-transparent text-zinc-400 hover:border-white/10 hover:bg-white/[0.04] hover:text-zinc-100'
+                  }`
+                }
+              >
+                <Icon size={16} />
+                {label}
+              </NavLink>
+            ))}
+          </nav>
         </div>
-        <nav className="flex gap-1 overflow-x-auto p-3 lg:block lg:flex-1 lg:space-y-1 lg:overflow-visible">
-          {NAV_ITEMS.map(({ to, icon: Icon, label }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={to === '/'}
-              className={({ isActive }) =>
-                `flex shrink-0 items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors ${
-                  isActive
-                    ? 'border border-amber-400/30 bg-amber-400/10 font-medium text-amber-200'
-                    : 'border border-transparent text-stone-400 hover:border-stone-800 hover:bg-stone-900 hover:text-stone-200'
-                }`
-              }
-            >
-              <Icon size={18} />
-              {label}
-            </NavLink>
-          ))}
-        </nav>
-        <div className="hidden border-t border-stone-800 p-4 lg:block">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-stone-500">
-            portfolio mode
-          </p>
-          <p className="mt-2 text-xs leading-5 text-stone-500">
-            MSA, Saga, Outbox, Kubernetes, Observability
-          </p>
-        </div>
-      </aside>
-      <main className="flex-1 overflow-auto p-4 md:p-6 lg:p-8">
+      </header>
+
+      <main className="mx-auto max-w-[1480px] p-4 md:p-6 lg:p-8">
         <Outlet />
       </main>
     </div>

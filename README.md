@@ -515,7 +515,7 @@ go-commerce/
 | GET | `/api/v1/audit-logs` | 감사 로그 목록 (JWT 필요) |
 | GET | `/api/v1/audit-report/daily` | 일별 리포트 (JWT 필요) |
 
-프론트엔드 대시보드의 **MongoDB** 탭(`MongoPage`)에서 위 API를 호출합니다. Docker 환경에서는 **포트 `3001`**(compose `frontend` 서비스)에서 동일 UI를 제공합니다.
+프론트엔드는 공개용 **Go Commerce Case Study** 첫 화면과 개발용 콘솔 페이지를 함께 제공합니다. 첫 화면은 Saga/Outbox/Kubernetes/Observability 검증 자료를 정적인 포트폴리오 페이지로 보여주며, **MongoDB** 탭(`MongoPage`) 같은 Dev Console 페이지에서는 실제 API를 호출합니다. Docker 환경에서는 **포트 `3001`**(compose `frontend` 서비스)에서 동일 UI를 제공합니다.
 
 ---
 
@@ -527,7 +527,7 @@ go-commerce/
 
 | Phase | 주제 | 핵심 키워드 |
 |-------|------|------------|
-| 0 | 모니터링 대시보드 | React, Vite, CORS Proxy |
+| 0 | 포트폴리오 Case Study + Dev Console | React, Vite, CORS Proxy |
 | 1 | [PostgreSQL 심화](./docs/improvements/phase1-postgresql.md) | GORM Callback, 인덱스, FOR UPDATE, CTE, Window Function |
 | 2 | [Redis 패턴](./docs/improvements/phase2-redis.md) | 캐시 무효화(Cache-Aside DEL), Hit/Miss 모니터, 조회수 랭킹(ZINCRBY/ZREVRANGE), 슬라이딩 윈도 Rate Limit(ZSET), JWT 블랙리스트 |
 | 3 | [Kafka 아키텍처](./docs/improvements/phase3-kafka.md) | DLQ 토픽, Redis 멱등 키, Hash 파티셔너+user_id 키, schema_version, `/debug/kafka` |
