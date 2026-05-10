@@ -2,7 +2,11 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
+const basePath = process.env.VITE_BASE_PATH || '/'
+const normalizedBase = basePath.endsWith('/') ? basePath : `${basePath}/`
+
 export default defineConfig({
+  base: normalizedBase,
   plugins: [react(), tailwindcss()],
   server: {
     port: 3000,
