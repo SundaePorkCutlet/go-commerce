@@ -31,29 +31,29 @@ const heroTags = ['Go', 'MSA', 'Kafka Saga', 'Outbox', 'Kubernetes', 'Observabil
 const serviceCards = [
   {
     name: 'USERFC',
-    role: 'Identity boundary',
-    detail: 'JWT, Redis blacklist, gRPC user profile lookup',
+    role: '인증 경계',
+    detail: 'JWT 발급, Redis 토큰 블랙리스트, gRPC 사용자 정보 조회',
     icon: ShieldCheck,
     tone: 'cyan',
   },
   {
     name: 'PRODUCTFC',
-    role: 'Stock owner',
-    detail: 'Catalog CRUD, atomic stock reservation, stock events',
+    role: '재고 소유자',
+    detail: '상품/카테고리 관리, 원자적 재고 예약, 재고 이벤트 발행',
     icon: PackageCheck,
     tone: 'emerald',
   },
   {
     name: 'ORDERFC',
-    role: 'Checkout core',
-    detail: 'Order transaction, idempotency reservation, outbox worker',
+    role: '주문 핵심 흐름',
+    detail: '주문 트랜잭션, idempotency token 선점, outbox worker',
     icon: GitBranch,
     tone: 'amber',
   },
   {
     name: 'PAYMENTFC',
-    role: 'Payment boundary',
-    detail: 'Payment request, Xendit path, MongoDB audit trail',
+    role: '결제 경계',
+    detail: '결제 요청, Xendit 연동 흐름, MongoDB 감사 로그',
     icon: Database,
     tone: 'rose',
   },
@@ -64,36 +64,36 @@ const sagaScenarios = {
     label: 'Success path',
     eyebrow: 'happy path',
     railClass: 'saga-success',
-    description: 'Stock is reserved, payment succeeds, and the order is completed through domain events.',
+    description: '재고 예약과 결제 성공이 각각 이벤트로 이어지고, ORDERFC가 최종 주문 완료 상태를 반영합니다.',
     steps: [
-      ['ORDERFC', 'order.created', 'Order and outbox are committed together', 'cyan'],
-      ['PRODUCTFC', 'stock.reserved', 'Stock owner reserves inventory atomically', 'emerald'],
-      ['PAYMENTFC', 'payment.requested', 'Payment request and audit log are recorded', 'cyan'],
-      ['ORDERFC', 'payment.success', 'Order status becomes completed', 'emerald'],
+      ['ORDERFC', 'order.created', '주문과 outbox 이벤트를 같은 DB 트랜잭션에 저장', 'cyan'],
+      ['PRODUCTFC', 'stock.reserved', '재고 도메인 소유자가 원자적으로 재고를 예약', 'emerald'],
+      ['PAYMENTFC', 'payment.requested', '결제 요청과 감사 로그를 기록', 'cyan'],
+      ['ORDERFC', 'payment.success', '주문 상태를 완료로 변경', 'emerald'],
     ],
   },
   paymentFailed: {
     label: 'Payment failed',
     eyebrow: 'compensation path',
     railClass: 'saga-failure',
-    description: 'Payment failure is not hidden. ORDERFC cancels the order and emits rollback intent for stock recovery.',
+    description: '결제 실패를 주문 실패로 뭉개지 않고, ORDERFC가 주문 취소와 재고 복구 이벤트를 분리해 처리합니다.',
     steps: [
-      ['ORDERFC', 'order.created', 'Order and outbox are committed together', 'cyan'],
-      ['PRODUCTFC', 'stock.reserved', 'Inventory was reserved before payment', 'emerald'],
-      ['PAYMENTFC', 'payment.failed', 'Invoice creation or webhook processing fails', 'rose'],
-      ['ORDERFC', 'stock.rollback', 'Order is cancelled and rollback event is published', 'amber'],
-      ['PRODUCTFC', 'stock.restored', 'Reserved stock is restored by the stock owner', 'emerald'],
+      ['ORDERFC', 'order.created', '주문과 outbox 이벤트를 같은 DB 트랜잭션에 저장', 'cyan'],
+      ['PRODUCTFC', 'stock.reserved', '결제 전에 재고 예약이 먼저 성공한 상태', 'emerald'],
+      ['PAYMENTFC', 'payment.failed', '인보이스 생성 또는 웹훅 처리 실패', 'rose'],
+      ['ORDERFC', 'stock.rollback', '주문 취소 후 재고 복구 이벤트 발행', 'amber'],
+      ['PRODUCTFC', 'stock.restored', '재고 도메인 소유자가 예약 재고를 복구', 'emerald'],
     ],
   },
   stockRejected: {
     label: 'Stock rejected',
     eyebrow: 'early rejection',
     railClass: 'saga-rejected',
-    description: 'If PRODUCTFC cannot reserve inventory, payment never starts and ORDERFC cancels the order early.',
+    description: '재고 예약이 불가능하면 결제를 시작하지 않고, ORDERFC가 주문을 조기에 취소합니다.',
     steps: [
-      ['ORDERFC', 'order.created', 'Order and outbox are committed together', 'cyan'],
-      ['PRODUCTFC', 'stock.rejected', 'Stock owner rejects reservation atomically', 'rose'],
-      ['ORDERFC', 'order.cancelled', 'Order is cancelled without creating payment', 'amber'],
+      ['ORDERFC', 'order.created', '주문과 outbox 이벤트를 같은 DB 트랜잭션에 저장', 'cyan'],
+      ['PRODUCTFC', 'stock.rejected', '재고 도메인 소유자가 예약 실패를 판단', 'rose'],
+      ['ORDERFC', 'order.cancelled', '결제 생성 없이 주문을 취소', 'amber'],
     ],
   },
 }
@@ -101,22 +101,22 @@ const sagaScenarios = {
 const reliabilityCards = [
   {
     title: 'Transactional Outbox',
-    body: 'Kafka publish is decoupled from the request path without losing the order-created intent.',
+    body: '주문 저장과 이벤트 저장을 같은 DB 트랜잭션에 묶고, Kafka 발행은 worker가 재시도합니다.',
     icon: GitBranch,
   },
   {
     title: 'Idempotency Token Reservation',
-    body: 'Duplicate checkout requests are blocked before order rows are created.',
+    body: '주문 생성 전에 token을 먼저 선점해 동일 요청의 중복 주문 생성을 막습니다.',
     icon: LockKeyhole,
   },
   {
     title: 'Consumer Idempotency Mindset',
-    body: 'The system is designed around at-least-once delivery rather than pretending exactly-once.',
+    body: 'exactly-once를 가정하지 않고, at-least-once 발행과 consumer 멱등성을 전제로 설계했습니다.',
     icon: MessageSquare,
   },
   {
     title: 'Kubernetes Runtime Proof',
-    body: 'kind manifests verify service DNS, probes, Kafka listener setup, and metric scraping.',
+    body: 'kind 환경에서 Service DNS, readiness probe, Kafka listener, metric scrape를 검증했습니다.',
     icon: Server,
   },
 ]
@@ -124,22 +124,22 @@ const reliabilityCards = [
 const evidenceCards = [
   {
     title: 'Prometheus scrape verification',
-    label: 'up=1 for all services',
+    label: '4개 서비스 scrape target up=1',
     image: heroEvidence,
   },
   {
     title: 'Kubernetes pods',
-    label: 'MSA stack running in kind',
+    label: 'kind 클러스터에서 MSA stack 실행',
     image: k8sPods,
   },
   {
     title: 'ORDERFC outbox',
-    label: 'order.created published',
+    label: 'order.created 발행 성공',
     image: sagaOrderDb,
   },
   {
     title: 'PRODUCTFC stock',
-    label: 'stock changed after Saga',
+    label: 'Saga 이후 재고 차감 확인',
     image: sagaProductDb,
   },
 ]
@@ -222,7 +222,7 @@ export default function Dashboard() {
             Go Commerce
           </h1>
           <p className="mt-5 max-w-2xl text-lg leading-8 text-zinc-300">
-            Event-driven commerce platform designed around Saga reliability, transactional outbox, idempotency, Kubernetes deployment evidence, and observability.
+            주문-재고-결제 흐름을 Kafka Saga로 분리하고, Outbox, Idempotency, Kubernetes 배포 검증, Observability까지 연결한 백엔드 포트폴리오입니다.
           </p>
 
           <div className="mt-8 flex flex-wrap gap-3">
@@ -232,7 +232,7 @@ export default function Dashboard() {
               rel="noreferrer"
               className="inline-flex items-center gap-2 rounded-lg border border-cyan-300/40 bg-cyan-300/10 px-4 py-2.5 text-sm font-semibold text-cyan-100 transition hover:bg-cyan-300/15"
             >
-              Portfolio brief <ExternalLink size={15} />
+              프로젝트 요약 <ExternalLink size={15} />
             </a>
             <a
               href={`${githubUrl}/blob/master/docs/INTERVIEW_QA.md`}
@@ -240,7 +240,7 @@ export default function Dashboard() {
               rel="noreferrer"
               className="inline-flex items-center gap-2 rounded-lg border border-white/12 bg-white/[0.04] px-4 py-2.5 text-sm font-semibold text-zinc-200 transition hover:bg-white/[0.08]"
             >
-              Interview Q&A <ExternalLink size={15} />
+              면접 Q&A <ExternalLink size={15} />
             </a>
           </div>
         </div>
@@ -248,7 +248,7 @@ export default function Dashboard() {
 
       <section className="px-5 py-16 md:px-10 lg:px-16">
         <SectionTitle eyebrow="Architecture" title="Four bounded contexts, one checkout story">
-          Each service owns its data and publishes domain events instead of sharing database tables across service boundaries.
+          각 서비스가 자기 데이터를 소유하고, 공유 DB 대신 도메인 이벤트로 주문 흐름을 이어갑니다.
         </SectionTitle>
 
         <div className="mx-auto grid max-w-6xl grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -265,7 +265,7 @@ export default function Dashboard() {
 
       <section className="border-y border-white/10 bg-white/[0.025] px-5 py-16 md:px-10 lg:px-16">
         <SectionTitle eyebrow="System flow" title="Saga choreography across service boundaries">
-          The checkout path shows how order, stock, and payment domains coordinate through Kafka events.
+          주문, 재고, 결제 도메인이 Kafka 이벤트로 협력하고 실패 시 보상 흐름으로 복구됩니다.
         </SectionTitle>
 
         <div className="mx-auto max-w-6xl">
@@ -313,18 +313,18 @@ export default function Dashboard() {
           <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-3">
             <div className="rounded-lg border border-emerald-300/20 bg-emerald-300/5 p-4">
               <CheckCircle2 size={17} className="text-emerald-300" />
-              <p className="mt-2 text-sm font-semibold text-white">Success is explicit</p>
-              <p className="mt-1 text-xs leading-5 text-zinc-400">`payment.success` completes the order only after stock reservation.</p>
+              <p className="mt-2 text-sm font-semibold text-white">성공 흐름을 명시</p>
+              <p className="mt-1 text-xs leading-5 text-zinc-400">재고 예약 이후 `payment.success`를 받아 주문을 완료합니다.</p>
             </div>
             <div className="rounded-lg border border-amber-300/20 bg-amber-300/5 p-4">
               <Undo2 size={17} className="text-amber-300" />
-              <p className="mt-2 text-sm font-semibold text-white">Rollback is modeled</p>
-              <p className="mt-1 text-xs leading-5 text-zinc-400">Payment failure emits rollback intent instead of pretending the flow never happened.</p>
+              <p className="mt-2 text-sm font-semibold text-white">보상 흐름을 모델링</p>
+              <p className="mt-1 text-xs leading-5 text-zinc-400">결제 실패는 재고 복구 이벤트로 연결해 상태 불일치를 줄입니다.</p>
             </div>
             <div className="rounded-lg border border-rose-300/20 bg-rose-300/5 p-4">
               <Ban size={17} className="text-rose-300" />
-              <p className="mt-2 text-sm font-semibold text-white">Rejection stops early</p>
-              <p className="mt-1 text-xs leading-5 text-zinc-400">Stock rejection cancels the order before payment is created.</p>
+              <p className="mt-2 text-sm font-semibold text-white">재고 실패는 조기 종료</p>
+              <p className="mt-1 text-xs leading-5 text-zinc-400">재고 예약 실패 시 결제를 만들지 않고 주문을 취소합니다.</p>
             </div>
           </div>
         </div>
@@ -332,7 +332,7 @@ export default function Dashboard() {
 
       <section className="px-5 py-16 md:px-10 lg:px-16">
         <SectionTitle eyebrow="Reliability" title="The real portfolio is the failure model">
-          These are the parts that make the project more than a CRUD demo.
+          성공 케이스보다 중요한 것은 실패했을 때 상태를 어떻게 복구하는지입니다.
         </SectionTitle>
 
         <div className="mx-auto grid max-w-6xl grid-cols-1 gap-4 md:grid-cols-2">
@@ -354,7 +354,7 @@ export default function Dashboard() {
 
       <section className="border-y border-white/10 bg-[#0d0f0f] px-5 py-16 md:px-10 lg:px-16">
         <SectionTitle eyebrow="Implementation evidence" title="Kubernetes, Saga, and observability proof">
-          Verification artifacts from the kind deployment are presented as part of the engineering portfolio.
+          kind 기반 Kubernetes 배포와 Saga 실행, Prometheus/Grafana 검증 결과를 증거 자료로 정리했습니다.
         </SectionTitle>
 
         <div className="mx-auto grid max-w-6xl grid-cols-1 gap-4 md:grid-cols-2">
@@ -377,19 +377,19 @@ export default function Dashboard() {
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-300">Interview narrative</p>
             <h2 className="mt-3 text-2xl font-semibold tracking-tight text-white md:text-4xl">
-              The answer I want reviewers to remember
+              면접관에게 남기고 싶은 한 문장
             </h2>
           </div>
           <div className="rounded-lg border border-white/10 bg-white/[0.035] p-6">
             <p className="text-lg leading-8 text-zinc-200">
-              I started from a Go commerce MSA and strengthened the parts where distributed systems usually fail:
-              order/event consistency, duplicate checkout requests, asynchronous compensation, Kubernetes runtime wiring, and metric-based verification.
+              단순 CRUD가 아니라 주문이라는 하나의 비즈니스 흐름에서 실제로 깨질 수 있는 지점을 찾아,
+              이벤트 유실, 중복 주문, 비동기 보상, Kubernetes 배포, metric 기반 검증까지 보완했습니다.
             </p>
             <div className="mt-6 grid grid-cols-1 gap-3 md:grid-cols-3">
               {[
-                [Workflow, 'Saga', 'business flow'],
-                [Gauge, 'RED', 'operating signal'],
-                [Network, 'K8s', 'runtime boundary'],
+                [Workflow, 'Saga', '주문 흐름'],
+                [Gauge, 'RED', '운영 지표'],
+                [Network, 'K8s', '배포 경계'],
               ].map(([Icon, title, body]) => (
                 <div key={title} className="rounded-lg border border-white/10 bg-black/20 p-4">
                   <Icon size={18} className="text-cyan-300" />
@@ -407,10 +407,10 @@ export default function Dashboard() {
           <div>
             <div className="flex items-center gap-2 text-sm font-semibold text-white">
               <CheckCircle2 size={17} className="text-emerald-300" />
-              Portfolio-ready presentation
+              공개 포트폴리오 화면
             </div>
             <p className="mt-2 text-sm leading-6 text-zinc-400">
-              The first screen is designed for public review, while the navigation keeps the deeper API and debugging tools available.
+              첫 화면은 프로젝트 강점을 빠르게 보여주고, 상단 메뉴에서는 API 테스트와 디버깅 화면까지 확인할 수 있습니다.
             </p>
           </div>
           <a
@@ -419,7 +419,7 @@ export default function Dashboard() {
             rel="noreferrer"
             className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg border border-white/12 bg-white/[0.04] px-4 py-2.5 text-sm font-semibold text-zinc-200 transition hover:bg-white/[0.08]"
           >
-            Repository <Code2 size={15} />
+            GitHub <Code2 size={15} />
           </a>
         </div>
       </section>
