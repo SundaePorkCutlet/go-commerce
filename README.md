@@ -11,6 +11,8 @@
 - **운영 서비스**: [https://hongjunho.xyz](https://hongjunho.xyz)
 - **메인 아키텍처(HTML)**: [docs/architecture-v2.html](docs/architecture-v2.html)
 - **아키텍처 문서(설명)**: [docs/architecture.md](docs/architecture.md)
+- **포트폴리오 요약**: [docs/PORTFOLIO_BRIEF.md](docs/PORTFOLIO_BRIEF.md)
+- **면접 예상 Q&A**: [docs/INTERVIEW_QA.md](docs/INTERVIEW_QA.md)
 - **Kubernetes 로컬 배포 학습**: [k8s/README.md](k8s/README.md)
 - **RAG Q&A 소스**: [`tools/project-qa-assistant`](tools/project-qa-assistant)
 
@@ -259,7 +261,7 @@ docker compose up -d --build
 - 학습 노트: [k8s/STUDY.md](k8s/STUDY.md)
 - 시각 요약 HTML: [k8s/index.html](k8s/index.html)
 
-현재는 USERFC, PRODUCTFC, ORDERFC, PAYMENTFC와 각 서비스 DB, Redis, MongoDB, Kafka, Zookeeper를 kind 클러스터에 올리고 `/health`, `/ready`, Kafka topic/consumer group 상태까지 검증했습니다. 다음 목표는 실제 주문 생성으로 Saga 흐름을 Kubernetes 내부에서 확인하는 것입니다.
+현재는 USERFC, PRODUCTFC, ORDERFC, PAYMENTFC와 각 서비스 DB, Redis, MongoDB, Kafka, Zookeeper를 kind 클러스터에 올리고 `/health`, `/ready`, Kafka topic/consumer group, 실제 주문 생성 Saga 흐름, Prometheus/Grafana 관측성까지 검증했습니다.
 
 실행 시 구성되는 컴포넌트:
 
