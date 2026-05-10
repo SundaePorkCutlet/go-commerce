@@ -1,5 +1,6 @@
 import {
   ArrowRight,
+  Ban,
   CheckCircle2,
   Code2,
   Database,
@@ -14,8 +15,10 @@ import {
   RadioTower,
   Server,
   ShieldCheck,
+  Undo2,
   Workflow,
 } from 'lucide-react'
+import { useState } from 'react'
 import heroEvidence from '../assets/evidence/observability-verification.svg'
 import k8sPods from '../assets/evidence/k8s-pods.svg'
 import sagaOrderDb from '../assets/evidence/saga-order-db.svg'
@@ -56,12 +59,44 @@ const serviceCards = [
   },
 ]
 
-const sagaSteps = [
-  ['ORDERFC', 'order.created', 'Order and outbox are committed together'],
-  ['PRODUCTFC', 'stock.reserved', 'Stock owner reserves inventory atomically'],
-  ['PAYMENTFC', 'payment.requested', 'Payment request and audit log are recorded'],
-  ['ORDERFC', 'payment.success / failed', 'Order is completed or compensated'],
-]
+const sagaScenarios = {
+  success: {
+    label: 'Success path',
+    eyebrow: 'happy path',
+    railClass: 'saga-success',
+    description: 'Stock is reserved, payment succeeds, and the order is completed through domain events.',
+    steps: [
+      ['ORDERFC', 'order.created', 'Order and outbox are committed together', 'cyan'],
+      ['PRODUCTFC', 'stock.reserved', 'Stock owner reserves inventory atomically', 'emerald'],
+      ['PAYMENTFC', 'payment.requested', 'Payment request and audit log are recorded', 'cyan'],
+      ['ORDERFC', 'payment.success', 'Order status becomes completed', 'emerald'],
+    ],
+  },
+  paymentFailed: {
+    label: 'Payment failed',
+    eyebrow: 'compensation path',
+    railClass: 'saga-failure',
+    description: 'Payment failure is not hidden. ORDERFC cancels the order and emits rollback intent for stock recovery.',
+    steps: [
+      ['ORDERFC', 'order.created', 'Order and outbox are committed together', 'cyan'],
+      ['PRODUCTFC', 'stock.reserved', 'Inventory was reserved before payment', 'emerald'],
+      ['PAYMENTFC', 'payment.failed', 'Invoice creation or webhook processing fails', 'rose'],
+      ['ORDERFC', 'stock.rollback', 'Order is cancelled and rollback event is published', 'amber'],
+      ['PRODUCTFC', 'stock.restored', 'Reserved stock is restored by the stock owner', 'emerald'],
+    ],
+  },
+  stockRejected: {
+    label: 'Stock rejected',
+    eyebrow: 'early rejection',
+    railClass: 'saga-rejected',
+    description: 'If PRODUCTFC cannot reserve inventory, payment never starts and ORDERFC cancels the order early.',
+    steps: [
+      ['ORDERFC', 'order.created', 'Order and outbox are committed together', 'cyan'],
+      ['PRODUCTFC', 'stock.rejected', 'Stock owner rejects reservation atomically', 'rose'],
+      ['ORDERFC', 'order.cancelled', 'Order is cancelled without creating payment', 'amber'],
+    ],
+  },
+}
 
 const reliabilityCards = [
   {
@@ -134,7 +169,32 @@ function SectionTitle({ eyebrow, title, children }) {
   )
 }
 
+function toneBadge(tone) {
+  const tones = {
+    cyan: 'border-cyan-300/25 bg-cyan-300/10 text-cyan-200',
+    emerald: 'border-emerald-300/25 bg-emerald-300/10 text-emerald-200',
+    amber: 'border-amber-300/25 bg-amber-300/10 text-amber-200',
+    rose: 'border-rose-300/25 bg-rose-300/10 text-rose-200',
+  }
+
+  return tones[tone] || tones.cyan
+}
+
+function eventTone(tone) {
+  const tones = {
+    cyan: 'text-cyan-200',
+    emerald: 'text-emerald-200',
+    amber: 'text-amber-200',
+    rose: 'text-rose-200',
+  }
+
+  return tones[tone] || tones.cyan
+}
+
 export default function Dashboard() {
+  const [sagaMode, setSagaMode] = useState('success')
+  const activeSaga = sagaScenarios[sagaMode]
+
   return (
     <div className="portfolio-showcase -mx-4 -my-4 md:-mx-6 md:-my-6 lg:-mx-8 lg:-my-8">
       <section className="case-hero relative min-h-[76vh] overflow-hidden px-5 py-16 md:px-10 lg:px-16">
@@ -209,22 +269,63 @@ export default function Dashboard() {
         </SectionTitle>
 
         <div className="mx-auto max-w-6xl">
-          <div className="saga-rail relative grid grid-cols-1 gap-4 lg:grid-cols-4">
-            {sagaSteps.map(([owner, event, detail], index) => (
-              <article key={`${owner}-${event}`} className="relative rounded-lg border border-white/10 bg-[#0f1111] p-5">
+          <div className="mb-5 flex flex-col gap-3 rounded-lg border border-white/10 bg-black/20 p-3 md:flex-row md:items-center md:justify-between">
+            <div className="px-1">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500">{activeSaga.eyebrow}</p>
+              <p className="mt-1 text-sm leading-6 text-zinc-300">{activeSaga.description}</p>
+            </div>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+              {Object.entries(sagaScenarios).map(([key, scenario]) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setSagaMode(key)}
+                  className={`rounded-lg border px-3 py-2 text-sm font-semibold transition ${
+                    sagaMode === key
+                      ? 'border-cyan-300/40 bg-cyan-300/10 text-cyan-100'
+                      : 'border-white/10 bg-white/[0.025] text-zinc-400 hover:border-white/20 hover:text-zinc-100'
+                  }`}
+                >
+                  {scenario.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className={`saga-rail ${activeSaga.railClass} relative grid grid-cols-1 gap-4 lg:grid-flow-col lg:auto-cols-fr`}>
+            {activeSaga.steps.map(([owner, event, detail, tone], index) => (
+              <article key={`${sagaMode}-${owner}-${event}`} className="relative rounded-lg border border-white/10 bg-[#0f1111] p-5">
                 <div className="mb-5 flex items-center justify-between">
-                  <span className="rounded-lg border border-cyan-300/25 bg-cyan-300/10 px-2.5 py-1 text-xs font-semibold text-cyan-200">
+                  <span className={`rounded-lg border px-2.5 py-1 text-xs font-semibold ${toneBadge(tone)}`}>
                     {owner}
                   </span>
                   <span className="font-mono text-xs text-zinc-600">0{index + 1}</span>
                 </div>
-                <p className="font-mono text-sm text-emerald-200">{event}</p>
+                <p className={`font-mono text-sm ${eventTone(tone)}`}>{event}</p>
                 <p className="mt-4 text-sm leading-6 text-zinc-400">{detail}</p>
-                {index < sagaSteps.length - 1 && (
+                {index < activeSaga.steps.length - 1 && (
                   <ArrowRight className="absolute -right-3 top-1/2 hidden -translate-y-1/2 text-zinc-600 lg:block" size={22} />
                 )}
               </article>
             ))}
+          </div>
+
+          <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-3">
+            <div className="rounded-lg border border-emerald-300/20 bg-emerald-300/5 p-4">
+              <CheckCircle2 size={17} className="text-emerald-300" />
+              <p className="mt-2 text-sm font-semibold text-white">Success is explicit</p>
+              <p className="mt-1 text-xs leading-5 text-zinc-400">`payment.success` completes the order only after stock reservation.</p>
+            </div>
+            <div className="rounded-lg border border-amber-300/20 bg-amber-300/5 p-4">
+              <Undo2 size={17} className="text-amber-300" />
+              <p className="mt-2 text-sm font-semibold text-white">Rollback is modeled</p>
+              <p className="mt-1 text-xs leading-5 text-zinc-400">Payment failure emits rollback intent instead of pretending the flow never happened.</p>
+            </div>
+            <div className="rounded-lg border border-rose-300/20 bg-rose-300/5 p-4">
+              <Ban size={17} className="text-rose-300" />
+              <p className="mt-2 text-sm font-semibold text-white">Rejection stops early</p>
+              <p className="mt-1 text-xs leading-5 text-zinc-400">Stock rejection cancels the order before payment is created.</p>
+            </div>
           </div>
         </div>
       </section>
