@@ -25,7 +25,7 @@
 | 1 | kind 클러스터 생성 + ORDERFC/PostgreSQL/Redis 배포 | `/health`, `/ready` 응답 |
 | 2 | Kafka/Zookeeper 추가 | `kafka:9092` 접근 + Kafka topic 생성 |
 | 3 | PRODUCTFC/PAYMENTFC/USERFC 추가 | 4개 서비스와 각 DB Pod Running |
-| 4 | Kafka 기반 Saga 확인 | `order.created -> stock.reserved -> payment` 로그 확인 |
+| 4 | Kafka 기반 Saga 확인 | `order.created -> stock.reserved -> payment_request` 확인 |
 | 5 | Observability 연결 | Prometheus/Grafana 또는 Jaeger 화면 캡처 |
 
 ## Directory Plan
@@ -283,6 +283,59 @@ Phase 3에서 확인한 추가 연결:
 - PRODUCTFC: `order.created`, `stock.updated`, `stock.rollback` Kafka consumer 시작
 - PAYMENTFC: MongoDB 연결, USERFC gRPC 연결, `stock.reserved` Kafka consumer 시작
 
+### Phase 4 Saga Verification
+
+2026-05-10 기준 kind 내부 서비스로 실제 주문 생성 흐름을 검증했습니다.
+
+실행 흐름:
+
+```text
+USERFC register/login
+-> PRODUCTFC category/product 생성
+-> ORDERFC checkout
+-> ORDERFC outbox order.created published
+-> PRODUCTFC order.created consume 후 stock 7 -> 4
+-> PRODUCTFC stock.reserved publish
+-> PAYMENTFC stock.reserved consume 후 payment_requests 저장
+-> PAYMENTFC USERFC gRPC로 user email 조회
+```
+
+검증 결과:
+
+```text
+POST /api/v1/orders
+# 201 {"message":"Order created successfully","order_id":2}
+
+GET /v1/products/2
+# stock: 4
+
+GET /api/v1/orders/history
+# 200, order_id: 2, status: created
+```
+
+DB 확인:
+
+```sql
+select id, topic, event_key, status, retry_count
+from order_outbox_events
+order by id desc limit 5;
+
+-- order.created / order-2 / published / 0
+
+select id, order_id, user_id, amount, status, retry_count
+from payment_requests
+order by id desc limit 5;
+
+-- order_id=2, amount=9000, status=FAILED
+```
+
+`payment_requests.status=FAILED`는 로컬 검증 환경에서 `XENDIT_SECRET_API_KEY`를 비워 두었기 때문에 Xendit invoice 생성이 `401`로 실패한 결과입니다. 중요한 검증 포인트는 Kafka Saga가 PAYMENTFC까지 도달했고, PAYMENTFC가 USERFC gRPC로 이메일을 조회한 뒤 결제 요청 처리 단계까지 진입했다는 점입니다.
+
+이번 Phase 4에서 발견해 수정한 점:
+
+- PRODUCTFC Kubernetes ConfigMap에 `secret.jwt_secret`이 없어 USERFC JWT를 거절하던 문제 수정
+- ORDERFC 주문 이력 JSON에 status를 문자열로 저장해 조회 시 int unmarshal 에러가 나던 문제 수정
+
 ### Kafka Notes
 
 Kafka는 단순히 `kafka:9092` 포트가 열렸다고 준비 완료라고 보기 어렵습니다. Consumer group을 쓰려면 내부 토픽인 `__consumer_offsets`가 만들어지고 group coordinator가 활성화되어야 합니다.
@@ -323,7 +376,7 @@ Saga까지 검증하면:
 
 ## Next Step
 
-다음 작업은 실제 Saga 흐름을 Kubernetes 내부에서 검증하는 것입니다.
+다음 작업은 관측성 Phase입니다. Prometheus/Grafana 또는 Jaeger를 Kubernetes에 올리고, Phase 4 Saga 흐름을 metric/log/trace 중 하나 이상으로 캡처합니다.
 
 ```bash
 kubectl logs deployment/orderfc -n go-commerce
