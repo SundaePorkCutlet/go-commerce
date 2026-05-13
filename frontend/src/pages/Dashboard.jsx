@@ -235,12 +235,12 @@ export default function Dashboard() {
               프로젝트 요약 <ExternalLink size={15} />
             </a>
             <a
-              href={`${githubUrl}/blob/master/docs/INTERVIEW_QA.md`}
+              href={`${githubUrl}/blob/master/docs/improvements/README.md`}
               target="_blank"
               rel="noreferrer"
               className="inline-flex items-center gap-2 rounded-lg border border-white/12 bg-white/[0.04] px-4 py-2.5 text-sm font-semibold text-zinc-200 transition hover:bg-white/[0.08]"
             >
-              면접 Q&A <ExternalLink size={15} />
+              개선 기록 <ExternalLink size={15} />
             </a>
           </div>
         </div>
@@ -331,8 +331,8 @@ export default function Dashboard() {
       </section>
 
       <section className="px-5 py-16 md:px-10 lg:px-16">
-        <SectionTitle eyebrow="Reliability" title="The real portfolio is the failure model">
-          성공 케이스보다 중요한 것은 실패했을 때 상태를 어떻게 복구하는지입니다.
+        <SectionTitle eyebrow="Reliability" title="Failure paths modeled as architecture">
+          주문 흐름에서 발생할 수 있는 이벤트 유실, 중복 요청, 보상 처리 문제를 구조 안에 반영했습니다.
         </SectionTitle>
 
         <div className="mx-auto grid max-w-6xl grid-cols-1 gap-4 md:grid-cols-2">
@@ -375,15 +375,15 @@ export default function Dashboard() {
       <section className="px-5 py-16 md:px-10 lg:px-16">
         <div className="mx-auto grid max-w-6xl grid-cols-1 gap-4 lg:grid-cols-[0.85fr_1.15fr]">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-300">Interview narrative</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-300">Engineering summary</p>
             <h2 className="mt-3 text-2xl font-semibold tracking-tight text-white md:text-4xl">
-              면접관에게 남기고 싶은 한 문장
+              Failure-aware commerce backend
             </h2>
           </div>
           <div className="rounded-lg border border-white/10 bg-white/[0.035] p-6">
             <p className="text-lg leading-8 text-zinc-200">
-              단순 CRUD가 아니라 주문이라는 하나의 비즈니스 흐름에서 실제로 깨질 수 있는 지점을 찾아,
-              이벤트 유실, 중복 주문, 비동기 보상, Kubernetes 배포, metric 기반 검증까지 보완했습니다.
+              주문이라는 하나의 비즈니스 흐름 안에서 이벤트 유실, 중복 주문, 비동기 보상,
+              Kubernetes 배포, metric 기반 검증까지 하나의 case study로 구성했습니다.
             </p>
             <div className="mt-6 grid grid-cols-1 gap-3 md:grid-cols-3">
               {[
