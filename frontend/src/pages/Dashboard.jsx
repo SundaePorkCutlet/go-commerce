@@ -2,7 +2,6 @@ import {
   ArrowRight,
   Ban,
   CheckCircle2,
-  Code2,
   Database,
   ExternalLink,
   Gauge,
@@ -402,27 +401,6 @@ export default function Dashboard() {
         </div>
       </section>
 
-      <section className="px-5 pb-16 md:px-10 lg:px-16">
-        <div className="mx-auto flex max-w-6xl flex-col gap-4 rounded-lg border border-white/10 bg-white/[0.035] p-5 md:flex-row md:items-center md:justify-between">
-          <div>
-            <div className="flex items-center gap-2 text-sm font-semibold text-white">
-              <CheckCircle2 size={17} className="text-emerald-300" />
-              공개 포트폴리오 화면
-            </div>
-            <p className="mt-2 text-sm leading-6 text-zinc-400">
-              첫 화면은 프로젝트 강점을 빠르게 보여주고, 상단 메뉴에서는 API 테스트와 디버깅 화면까지 확인할 수 있습니다.
-            </p>
-          </div>
-          <a
-            href={githubUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg border border-white/12 bg-white/[0.04] px-4 py-2.5 text-sm font-semibold text-zinc-200 transition hover:bg-white/[0.08]"
-          >
-            GitHub <Code2 size={15} />
-          </a>
-        </div>
-      </section>
     </div>
   )
 }
