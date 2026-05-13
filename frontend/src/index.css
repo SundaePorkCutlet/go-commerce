@@ -21,28 +21,21 @@ body {
 }
 
 .saga-rail::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 50%;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(103, 232, 249, 0.2), rgba(52, 211, 153, 0.45), rgba(251, 191, 36, 0.32), transparent);
-  transform: translateY(-50%);
+  content: none;
 }
 
 .saga-rail.saga-failure::before {
-  background: linear-gradient(90deg, transparent, rgba(103, 232, 249, 0.18), rgba(251, 191, 36, 0.46), rgba(251, 113, 133, 0.48), transparent);
+  content: none;
 }
 
 .saga-rail.saga-rejected::before {
-  background: linear-gradient(90deg, transparent, rgba(103, 232, 249, 0.18), rgba(251, 113, 133, 0.5), rgba(251, 191, 36, 0.34), transparent);
+  content: none;
 }
 
 .saga-rail::after {
   content: "";
   position: absolute;
-  top: calc(50% - 3px);
+  top: calc(var(--saga-rail-y, 92px) - 3px);
   left: 0;
   width: 44px;
   height: 6px;
@@ -50,6 +43,13 @@ body {
   background: #67e8f9;
   box-shadow: 0 0 24px rgba(103, 232, 249, 0.82);
   animation: saga-travel 4.8s ease-in-out infinite;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.saga-step-card > * {
+  position: relative;
+  z-index: 2;
 }
 
 .saga-rail.saga-failure::after {

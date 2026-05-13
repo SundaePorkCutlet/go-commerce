@@ -293,7 +293,7 @@ export default function Dashboard() {
 
           <div className={`saga-rail ${activeSaga.railClass} relative grid grid-cols-1 gap-4 lg:grid-flow-col lg:auto-cols-fr`}>
             {activeSaga.steps.map(([owner, event, detail, tone], index) => (
-              <article key={`${sagaMode}-${owner}-${event}`} className="relative rounded-lg border border-white/10 bg-[#0f1111] p-5">
+              <article key={`${sagaMode}-${owner}-${event}`} className="saga-step-card relative rounded-lg border border-white/10 bg-[#0f1111] p-5">
                 <div className="mb-5 flex items-center justify-between">
                   <span className={`rounded-lg border px-2.5 py-1 text-xs font-semibold ${toneBadge(tone)}`}>
                     {owner}
